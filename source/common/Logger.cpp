@@ -30,11 +30,11 @@ const char* Logger::GetTag(eLogLevel ll)
     switch (ll)
     {
         default:
-            return "Unk: ";
+            return "UNK: ";
         case LOG_INFO:
-            return "";
+            return "INFO: ";
         case LOG_WARN:
-            return "Warning: ";
+            return "WARN: ";
         case LOG_ERR:
             return "ERROR: ";
     }

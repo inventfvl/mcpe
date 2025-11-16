@@ -12,10 +12,10 @@
 //#define MOD_USE_FLAT_WORLD         // Use a flat world instead of the regular world generation
 //#define MOD_USE_BIGGER_SCREEN_SIZE // Use a bigger screen size instead of 854x480
 //#define MOD_DONT_COLOR_GRASS       // Don't give the top of grass tiles a different color. (like Classic) @TODO: This does not do shit anymore
-//#define MOD_POPOUT_CONSOLE         // Open a separate console aside from the game window. By default only the debugger can see our logs. Win32 Debug only.
+#define MOD_POPOUT_CONSOLE           // Open a separate console aside from the game window. By default only the debugger can see our logs. Win32 Debug only.
 
 // Tests
-//#define TEST_SURVIVAL_MODE      	 // Test survival mode.
+//#define TEST_SURVIVAL_MODE  1    	 // Test survival mode.
 
 // Features (major changes)
 

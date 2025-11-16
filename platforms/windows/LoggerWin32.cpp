@@ -9,10 +9,28 @@ void LoggerWin32::print(eLogLevel ll, const char* const str)
 {
     Logger::print(ll, str);
 
+    HANDLE handle;
+    handle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+    // message colors
+    switch (ll)
+    {
+    default:
+    case LOG_INFO:
+        SetConsoleTextAttribute(handle, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+    case LOG_WARN:
+        SetConsoleTextAttribute(handle, FOREGROUND_RED | FOREGROUND_GREEN);
+    case LOG_ERR:
+        SetConsoleTextAttribute(handle, FOREGROUND_RED | FOREGROUND_INTENSITY);
+    }
+
     // wellp, this sucks, but it's fine
     OutputDebugStringA(GetTag(ll));
     OutputDebugStringA(str);
     OutputDebugStringA("\n");
+
+    // reset to normal after printing
+    SetConsoleTextAttribute(handle, FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
 }
 
 void LoggerWin32::print(eLogLevel ll, std::string str)
