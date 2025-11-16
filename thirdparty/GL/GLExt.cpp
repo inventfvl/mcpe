@@ -6,13 +6,18 @@
 	SPDX-License-Identifier: BSD-1-Clause
  ********************************************************************/
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__DREAMCAST__)
+
+#ifdef __DREAMCAST__
+
+#define USE_GL_VBO_EMULATION
+
+#endif
 
 #include "GL.hpp"
 #include <unordered_map>
 
 #ifdef _WIN32
-HWND GetHWND();
 #ifndef USE_OPENGL_2_FEATURES
 // this is stupidly hacky
 typedef BOOL(WINAPI* PFNWGLSWAPINTERVALEXTPROC) (int interval);
@@ -46,6 +51,7 @@ bool xglInitted()
 #endif
 }
 
+// Only called on Win32 and SDL+Win32
 void xglInit()
 {
 #ifdef USE_HARDWARE_GL_BUFFERS
@@ -64,17 +70,6 @@ void xglInit()
 
 #ifndef USE_OPENGL_2_FEATURES
 	p_wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
-#endif
-
-#ifdef USE_HARDWARE_GL_BUFFERS
-	if (!xglInitted())
-	{
-		const char* const GL_ERROR_MSG = "Error initializing GL extensions. OpenGL 2.0 or later is required. Update your graphics drivers!";
-		LOG_E(GL_ERROR_MSG);
-#ifdef _WIN32
-		MessageBoxA(GetHWND(), GL_ERROR_MSG, "OpenGL Error", MB_OK);
-#endif
-	}
 #endif
 }
 

@@ -15,6 +15,9 @@
 #include "client/model/CowModel.hpp"
 #include "client/model/ChickenModel.hpp"
 #include "client/model/CreeperModel.hpp"
+#include "client/model/SpiderModel.hpp"
+#include "client/model/SkeletonModel.hpp"
+#include "client/model/ZombieModel.hpp"
 
 EntityRenderDispatcher* EntityRenderDispatcher::instance;
 Vec3 EntityRenderDispatcher::off;
@@ -25,7 +28,11 @@ EntityRenderDispatcher::EntityRenderDispatcher() :
 	m_SheepRenderer(new SheepModel(false), new SheepModel(true), 0.7f),
 	m_CowRenderer(new CowModel, 0.7f),
 	m_ChickenRenderer(new ChickenModel, 0.3f),
-	m_CreeperRenderer(new CreeperModel, 0.5f)
+	m_CreeperRenderer(new CreeperModel, 0.5f),
+	m_SpiderRenderer(),
+	m_SkeletonRenderer(new SkeletonModel, 0.5f),
+	m_ZombieRenderer(new ZombieModel, 0.5f),
+	m_ArrowRenderer()
 {
 	m_pItemInHandRenderer = nullptr;
 	m_pTextures = nullptr;
@@ -36,12 +43,17 @@ EntityRenderDispatcher::EntityRenderDispatcher() :
 	m_pOptions = nullptr;
 	m_pFont = nullptr;
 
+	// @TODO: Put these in an array or something
 	m_HumanoidMobRenderer.init(this);
 	m_PigRenderer.init(this);
 	m_SheepRenderer.init(this);
+	m_SpiderRenderer.init(this);
+	m_SkeletonRenderer.init(this);
 	m_CowRenderer.init(this);
 	m_ChickenRenderer.init(this);
 	m_CreeperRenderer.init(this);
+	m_ZombieRenderer.init(this);
+	m_ArrowRenderer.init(this);
 	
 	// TODO
 
@@ -92,8 +104,16 @@ EntityRenderer* EntityRenderDispatcher::getRenderer(int renderType)
 			return &m_PigRenderer;
 		case RENDER_SHEEP:
 			return &m_SheepRenderer;
+		case RENDER_SPIDER:
+			return &m_SpiderRenderer;
+		case RENDER_SKELETON:
+			return &m_SkeletonRenderer;
 		case RENDER_CREEPER:
 			return &m_CreeperRenderer;
+		case RENDER_ZOMBIE:
+			return &m_ZombieRenderer;
+		case RENDER_ARROW:
+			return &m_ArrowRenderer;
 		case RENDER_ROCKET:
 			return &m_RocketRenderer;
 #ifdef ENH_ALLOW_SAND_GRAVITY
@@ -118,6 +138,23 @@ EntityRenderer* EntityRenderDispatcher::getRenderer(Entity* pEnt)
 void EntityRenderDispatcher::onGraphicsReset()
 {
 	m_HumanoidMobRenderer.onGraphicsReset();
+	m_PigRenderer.onGraphicsReset();
+	m_SheepRenderer.onGraphicsReset();
+	m_SpiderRenderer.onGraphicsReset();
+	m_SkeletonRenderer.onGraphicsReset();
+	m_CowRenderer.onGraphicsReset();
+	m_ChickenRenderer.onGraphicsReset();
+	m_CreeperRenderer.onGraphicsReset();
+	m_ZombieRenderer.onGraphicsReset();
+	m_ArrowRenderer.onGraphicsReset();
+	
+	m_TntRenderer.onGraphicsReset();
+	m_CameraRenderer.onGraphicsReset();
+	m_ItemRenderer.onGraphicsReset();
+	m_RocketRenderer.onGraphicsReset();
+#ifdef ENH_ALLOW_SAND_GRAVITY
+	m_FallingTileRenderer.onGraphicsReset();
+#endif
 }
 
 void EntityRenderDispatcher::prepare(Level* level, Textures* textures, Font* font, Mob* mob, Options* options, float f)
@@ -127,14 +164,14 @@ void EntityRenderDispatcher::prepare(Level* level, Textures* textures, Font* fon
 	m_pMob = mob;
 	m_pFont = font;
 	m_pOptions = options;
-	m_rot = mob->m_rotPrev + (mob->m_rot - mob->m_rotPrev) * f;
+	m_rot = mob->m_oRot + (mob->m_rot - mob->m_oRot) * f;
 	m_pos = mob->m_posPrev + (mob->m_pos - mob->m_posPrev) * f;
 }
 
 void EntityRenderDispatcher::render(Entity* entity, float a)
 {
 	Vec3 pos = Vec3(entity->m_posPrev + (entity->m_pos - entity->m_posPrev) * a);
-	float yaw = entity->m_rotPrev.x + a * (entity->m_rot.x - entity->m_rotPrev.x);
+	float yaw = entity->m_oRot.x + a * (entity->m_rot.x - entity->m_oRot.x);
 
 	float bright = entity->getBrightness(1.0f);
 	glColor4f(bright, bright, bright, 1.0f);
@@ -145,18 +182,16 @@ void EntityRenderDispatcher::render(Entity* entity, float a)
 void EntityRenderDispatcher::render(Entity* entity, const Vec3& pos, float rot, float a)
 {
 	EntityRenderer* pRenderer = getRenderer(entity);
-	if (pRenderer)
-	{
-#ifndef ORIGINAL_CODE
-		if (pRenderer == &m_HumanoidMobRenderer)
-			m_HumanoidMobRenderer.m_pHumanoidModel->m_bSneaking = entity->isSneaking();
-		else
-			m_HumanoidMobRenderer.m_pHumanoidModel->m_bSneaking = false;
-#endif
 
-		pRenderer->render(entity, pos.x, pos.y, pos.z, rot, a);
-		pRenderer->postRender(entity, pos, rot, a);
+	if (!pRenderer)
+	{
+		//LOG_E("Failed to fetch renderer for entity: %s", entity->getDescriptor().getEntityType().getName());
+		assert(!"Failed to fetch renderer for an entity");
+		return;
 	}
+
+	pRenderer->render(entity, pos, rot, a);
+	pRenderer->postRender(entity, pos, rot, a);
 }
 
 void EntityRenderDispatcher::setLevel(Level* level)

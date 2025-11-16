@@ -15,6 +15,7 @@ class SelectWorldScreen : public Screen
 {
 public:
 	SelectWorldScreen();
+    ~SelectWorldScreen();
 
 	void init() override;
 	bool isInGameScreen() override;
@@ -23,6 +24,7 @@ public:
 	void render(int mouseX, int mouseY, float f) override;
 	bool handleBackEvent(bool b) override;
 	void buttonClicked(Button* pButton) override;
+	void handleScroll(bool down) override;
 
 	bool isIndexValid(int);
 	std::string getUniqueLevelName(const std::string& in);

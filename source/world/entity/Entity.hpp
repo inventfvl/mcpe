@@ -17,7 +17,10 @@
 #include "world/item/ItemInstance.hpp"
 #include "SynchedEntityData.hpp"
 #include "EntityTypeDescriptor.hpp"
-#include "common/Utils.hpp"
+
+#define C_ENTITY_FLAG_ONFIRE (0)
+#define C_ENTITY_FLAG_SNEAKING (1)
+#define C_ENTITY_FLAG_RIDING (2)
 
 class Level;
 class Player;
@@ -42,6 +45,7 @@ enum eEntityRenderType
 	RENDER_SPIDER,
 	RENDER_CREEPER,
 	RENDER_ROCKET,
+	RENDER_ARROW,
 
 	// custom
 	RENDER_FALLING_TILE = 50,
@@ -80,23 +84,51 @@ struct EntityPos
 
 class Entity
 {
+protected:
+	typedef int8_t SharedFlag;
+public:
+	typedef int32_t ID;
+public:
+	class EventType
+	{
+	public:
+		typedef int8_t ID;
+		enum
+		{
+			NONE,
+			JUMP,
+			HURT,
+			DEATH,
+			START_ATTACKING,
+			STOP_ATTACKING
+		};
+	};
+
 private:
 	void _init();
 public:
 	Entity() { _init(); }
 	Entity(Level*);
 	virtual ~Entity();
+
+protected:
+	virtual bool getSharedFlag(SharedFlag flag) const;
+	virtual void setSharedFlag(SharedFlag flag, bool value);
+
+public:
 	virtual void reset();
 	virtual void setLevel(Level*);
 	virtual void removed();
 	virtual void setPos(const Vec3& pos);
 	virtual void remove();
-	virtual int move(const Vec3& pos);
-	virtual void moveTo(const Vec3& pos, const Vec2& rot = Vec2::ZERO);
-	virtual void absMoveTo(const Vec3& pos, const Vec2& rot = Vec2::ZERO);
+	virtual void move(const Vec3& posIn);
+	virtual void moveTo(const Vec3& pos);
+	virtual void moveTo(const Vec3& pos, const Vec2& rot);
+	virtual void absMoveTo(const Vec3& pos);
+	virtual void absMoveTo(const Vec3& pos, const Vec2& rot);
 	virtual void moveRelative(const Vec3& pos);
 	virtual void lerpTo(const Vec3& pos);
-	virtual void lerpTo(const Vec3& pos, const Vec2& rot, int i);
+	virtual void lerpTo(const Vec3& pos, const Vec2& rot, int p = 3);
 	virtual void lerpMotion(const Vec3& pos);
 	virtual void turn(const Vec2& rot);
 	virtual void interpolateTurn(const Vec2& rot);
@@ -124,10 +156,14 @@ public:
 	virtual bool isPickable() const { return false; }
 	virtual bool isPushable() const { return false; }
 	virtual bool isShootable() const { return false; }
-	virtual bool isSneaking() const { return false; }
+	virtual bool isOnFire() const { return m_fireTicks > 0 || getSharedFlag(C_ENTITY_FLAG_ONFIRE); }
+	virtual bool isRiding() const { return /*m_pRiding != nullptr ||*/ getSharedFlag(C_ENTITY_FLAG_RIDING); }
+	virtual bool isSneaking() const { return getSharedFlag(C_ENTITY_FLAG_SNEAKING); }
+	virtual void setSneaking(bool value) { setSharedFlag(C_ENTITY_FLAG_SNEAKING, value); }
 	virtual bool isAlive() const { return m_bRemoved; }
-	virtual bool isOnFire() const { return m_fireTicks > 0; }
 	virtual bool isPlayer() const { return false; }
+	virtual bool isMob() const { return false; }
+	virtual bool interpolateOnly() const { return false; }
 	virtual bool isCreativeModeAllowed() const { return false; }
 	virtual bool shouldRender(Vec3& camPos) const;
 	virtual bool shouldRenderAtSqrDistance(float distSqr) const;
@@ -139,10 +175,10 @@ public:
 	virtual ItemEntity* spawnAtLocation(int, int, float);
 	virtual void awardKillScore(Entity* pKilled, int score);
 	virtual void setEquippedSlot(int, int, int);
-	virtual void setRot(const Vec2& rot);
+	virtual void setRot(const Vec2& rot, bool rebound = false);
 	virtual void setSize(float rad, float height);
 	virtual void setPos(EntityPos*);
-	virtual void resetPos();
+	virtual void resetPos(bool respawn = false);
 	virtual void outOfWorld();
 	virtual void checkFallDamage(float f, bool b);
 	virtual void causeFallDamage(float f);
@@ -150,13 +186,24 @@ public:
 	virtual void burn(int);
 	virtual void lavaHurt();
 	virtual int queryEntityRenderer();
+	virtual const AABB* getCollideBox() const;
+	virtual AABB* getCollideAgainstBox(Entity* ent) const;
+	virtual void handleInsidePortal();
+	virtual void handleEntityEvent(EventType::ID eventId);
+	//virtual void thunderHit(LightningBolt*);
+	void load(const CompoundTag& tag);
+	bool save(CompoundTag& tag) const;
+	void saveWithoutId(CompoundTag& tag) const;
+	virtual void addAdditionalSaveData(CompoundTag& tag) const;
+	virtual void readAdditionalSaveData(const CompoundTag& tag);
 	// Removed by Mojang. See https://stackoverflow.com/questions/962132/why-is-a-call-to-a-virtual-member-function-in-the-constructor-a-non-virtual-call
 	//virtual void defineSynchedData();
+	EntityType::ID getEncodeId() const;
+	Entity::ID hashCode() const { return m_EntityID; }
 
 	const EntityTypeDescriptor& getDescriptor() const { return *m_pDescriptor; }
+	SynchedEntityData& getEntityData() { return m_entityData; }
 	const SynchedEntityData& getEntityData() const { return m_entityData; }
-
-	int hashCode() const { return m_EntityID; }
 
 	bool operator==(const Entity& other) const;
 
@@ -168,37 +215,38 @@ public:
 			(m_pos.z - pos.z) * (m_pos.z - pos.z);
 	}
 
-public:
-	static int entityCounter;
-	static Random sharedRandom;
+protected:
+	SynchedEntityData m_entityData;
+	bool m_bMakeStepSound;
+	const EntityTypeDescriptor* m_pDescriptor;
 
+public:
 	Vec3 m_pos;
 	bool m_bInAChunk;
 	ChunkPos m_chunkPos;
 	int m_chunkPosY;
-	int field_20;
+	int field_20; // unused Vec3?
 	int field_24;
 	int field_28;
-	int m_EntityID;
+	Entity::ID m_EntityID;
 	float field_30;
-	uint8_t field_34;
+	bool m_bBlocksBuilding;
 	Level* m_pLevel;
-	Vec3 m_oPos; // "o" in Java or "xo" ""yo" "zo"
+	Vec3 m_oPos; // "o" in Java or "xo" "yo" "zo"
 	Vec3 m_vel;
 	Vec2 m_rot;
-	//maybe these are the actual m_yaw and m_pitch, and
-	//the one I annotated are the destination yaw and pitch.
-	//interpolateTurn doesn't modify them, so I highly suspect
-	//this to be the case.
-	Vec2 m_rotPrev;
+	Vec2 m_oRot; // "RotO" in Java or "xRotO" "yRotO"
 	AABB m_hitbox;
-	bool m_onGround;
+	bool m_bOnGround;
 	bool m_bHorizontalCollision;
-	bool field_7E;
-	bool field_7F;
+	bool m_bCollision;
+	bool m_bVerticalCollision;
 	bool m_bHurt;
-	uint8_t field_81;
+	bool m_bIsInWeb;
+	uint8_t m_bSlide;
 	bool m_bRemoved;
+	bool m_bIsInvisible;
+	bool m_bForceRemove;
 	float m_heightOffset;
 	float m_bbWidth;
 	float m_bbHeight;
@@ -206,24 +254,23 @@ public:
 	float m_walkDist;
 	Vec3 m_posPrev;
 	float m_ySlideOffset;
-	float field_A8;
+	float m_footSize;
 	bool m_bNoPhysics;
-	float field_B0;
-	int field_B4;
-	int field_B8;
+	float m_pushthrough;
+	int m_tickCount;
+	int m_invulnerableTime;
 	int m_airCapacity;
-	int m_fireTicks;
+	int16_t m_fireTicks;
 	int m_flameTime;
 	int field_C8;  // @NOTE: Render type? (eEntityRenderType)
 	float m_distanceFallen; // Supposed to be protected
-	int m_airSupply;
-	uint8_t field_D4;
-	bool field_D5;
-	bool field_D6;
+	int16_t m_airSupply;
+	bool m_bWasInWater;
+	bool m_bFireImmune;
+	bool m_bFirstTick;
 	int m_nextStep;
 
-	protected:
-		SynchedEntityData m_entityData;
-		bool m_bMakeStepSound;
-		const EntityTypeDescriptor* m_pDescriptor;
+public:
+	static Entity::ID entityCounter;
+	static Random sharedRandom;
 };

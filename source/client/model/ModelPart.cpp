@@ -10,12 +10,12 @@
 
 #define MUL_DEG_TO_RAD (180.0f / float(M_PI))  // formerly known as Cube::c
 
-ModelPart::ModelPart(int a, int b, float textureWidth, float textureHeight)
+ModelPart::ModelPart(int a, int b)
 {
 	_init(a, b);
 }
 
-ModelPart::ModelPart(Model* model, int a, int b, float textureWidth, float textureHeight)
+ModelPart::ModelPart(Model* model, int a, int b)
 {
 	_init(a, b);
 	setModel(model);
@@ -79,9 +79,11 @@ void ModelPart::clear()
 {
 	for (size_t i = 0; i < m_pCubes.size(); i++)
 		delete m_pCubes[i];
-
-	// N.B. does not clear children
 	m_pCubes.clear();
+    
+	for (size_t i = 0; i < m_pChildren.size(); i++)
+		delete m_pChildren[i];
+    m_pChildren.clear();
 }
 
 void ModelPart::compile(float scale)
@@ -114,7 +116,7 @@ void ModelPart::draw()
 {
 	// We are not using drawArrayVTC here since that would use the color that's compiled initially into the ModelPart
 	// and would therefore not allow for on-the-fly coloring.
-	drawArrayVTN(this->m_buffer, 36 * m_pCubes.size(), sizeof(Tesselator::Vertex));
+	drawArrayVTN(this->m_buffer, 36 * (int)m_pCubes.size(), sizeof(Tesselator::Vertex));
 }
 
 void ModelPart::drawSlow(float scale)

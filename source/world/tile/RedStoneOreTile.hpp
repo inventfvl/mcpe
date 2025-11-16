@@ -13,16 +13,16 @@
 class RedStoneOreTile : public Tile
 {
 public:
-	RedStoneOreTile(int id, int texture, bool bLit);
+	RedStoneOreTile(TileID id, int texture, bool bLit);
 
-	int getResource(int, Random*) const override;
+	int getResource(TileData, Random*) const override;
 	int getResourceCount(Random*) const override;
 	int getSpawnResourcesAuxValue(int) const override;
 	int getTickDelay() const override;
 	void animateTick(Level*, const TilePos& pos, Random*) override;
 	void tick(Level*, const TilePos& pos, Random*) override;
 	void attack(Level*, const TilePos& pos, Player*) override;
-	int use(Level*, const TilePos& pos, Player*) override;
+	bool use(Level*, const TilePos& pos, Player*) override;
 	void stepOn(Level*, const TilePos& pos, Entity*) override;
 
 	int poofParticles(Level*, const TilePos& pos);

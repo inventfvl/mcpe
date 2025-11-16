@@ -6,9 +6,9 @@
 	SPDX-License-Identifier: BSD-1-Clause
  ********************************************************************/
 
-#include "common/Utils.hpp"
-
 #pragma once
+
+#include "compat/LegacyCPP.hpp"
 
 class Material
 {
@@ -53,7 +53,8 @@ public:
 		*clay,
 		*vegetable,
 		*portal,
-		*cake;
+		*cake,
+		*web;
 
 public:
 	bool m_bFlammable;

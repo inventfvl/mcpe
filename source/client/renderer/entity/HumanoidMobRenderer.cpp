@@ -21,25 +21,20 @@ HumanoidMobRenderer::HumanoidMobRenderer(HumanoidModel* pModel, float f) : MobRe
 
 void HumanoidMobRenderer::additionalRendering(Mob* mob, float f)
 {
-	if (!mob->isPlayer()) return;
-	Player* player = (Player*)mob;
+	ItemInstance* inst = mob->getCarriedItem();
 
-	int itemID = player->m_pInventory->getSelectedItemId();
-	if (itemID <= 0)
-		return;
-
-	ItemInstance inst(itemID, 1, 0);
 	glPushMatrix();
 	m_pHumanoidModel->m_arm1.translateTo(0.0625f);
 	glTranslatef(-0.0625f, 0.4375f, 0.0625f);
-	if (itemID <= C_MAX_TILES && TileRenderer::canRender(Tile::tiles[itemID]->getRenderShape()))
+
+	if (inst && inst->getTile() && TileRenderer::canRender(inst->getTile()->getRenderShape()))
 	{
 		glTranslatef(0.0f, 0.1875f, -0.3125f);
 		glRotatef(20.0f, 1.0f, 0.0f, 0.0f);
 		glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
 		glScalef(0.375f, -0.375f, 0.375f);
 	}
-	else if (Item::items[itemID]->isHandEquipped())
+	else if (inst && inst->getItem() && inst->getItem()->isHandEquipped())
 	{
 		glTranslatef(0.0f, 0.1875f, 0.0f);
 		glScalef(0.625f, -0.625f, 0.625f);
@@ -55,8 +50,34 @@ void HumanoidMobRenderer::additionalRendering(Mob* mob, float f)
 		glRotatef(20.0f, 0.0f, 0.0f, 1.0f);
 	}
 
-	m_pDispatcher->m_pItemInHandRenderer->renderItem(&inst);
+	glEnable(GL_RESCALE_NORMAL);
+	m_pDispatcher->m_pItemInHandRenderer->renderItem(inst);
 	glPopMatrix();
+	glDisable(GL_RESCALE_NORMAL);
+}
+
+void HumanoidMobRenderer::render(Entity* pEntity, const Vec3& pos, float f1, float f2)
+{
+	if (pEntity->isPlayer())
+	{
+		Player* player = (Player*)pEntity;
+		ItemInstance* item = player->getSelectedItem();
+		m_pHumanoidModel->m_bHoldingRightHand = item != nullptr;
+	}
+
+	if (pEntity->isSneaking())
+	{
+		m_pHumanoidModel->m_bSneaking = true;
+		Vec3 pos2 = pos;
+		pos2.y -= 0.125f;
+		MobRenderer::render(pEntity, pos2, f1, f2);
+		// https://github.com/ReMinecraftPE/mcpe/pull/197/#discussion_r2437985914
+		m_pHumanoidModel->m_bSneaking = false;
+	}
+	else
+	{
+		MobRenderer::render(pEntity, pos, f1, f2);
+	}
 }
 
 void HumanoidMobRenderer::onGraphicsReset()

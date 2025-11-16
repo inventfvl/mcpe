@@ -48,42 +48,42 @@ public:
 class FlowerFeature : public Feature
 {
 public:
-	FlowerFeature(int id);
+	FlowerFeature(TileID id);
 	bool place(Level*, Random*, const TilePos& pos) override;
 
 private:
-	int m_ID;
+	TileID m_ID;
 };
 
 class SpringFeature : public Feature
 {
 public:
-	SpringFeature(int id);
+	SpringFeature(TileID id);
 	bool place(Level*, Random*, const TilePos& pos) override;
 
 private:
-	int m_ID;
+	TileID m_ID;
 };
 
 class ClayFeature : public Feature
 {
 public:
-	ClayFeature(int id, int count);
+	ClayFeature(TileID id, int count);
 	bool place(Level*, Random*, const TilePos& pos) override;
 
 private:
-	int m_ID;
+	TileID m_ID;
 	int m_count;
 };
 
 class OreFeature : public Feature
 {
 public:
-	OreFeature(int id, int count);
+	OreFeature(TileID id, int count);
 	bool place(Level*, Random*, const TilePos& pos) override;
 
 private:
-	int m_ID;
+	TileID m_ID;
 	int m_count;
 };
 
@@ -92,4 +92,29 @@ class ReedsFeature : public Feature
 public:
 	bool place(Level*, Random*, const TilePos& pos) override;
 };
+
+class VegetationFeature : public Feature
+{
+public:
+	VegetationFeature(TileID id, TileData data, int count = 128);
+	bool place(Level*, Random*, const TilePos& pos) override;
+
+private:
+	TileID m_ID;
+	TileData m_data;
+	int m_count;
+};
+
+class CactusFeature : public Feature
+{
+public:
+	bool place(Level*, Random*, const TilePos& pos) override;
+};
+
+class PumpkinFeature : public Feature
+{
+public:
+	bool place(Level*, Random*, const TilePos& pos) override;
+};
+
 

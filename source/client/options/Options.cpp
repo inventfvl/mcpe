@@ -8,8 +8,11 @@
 
 #include <fstream>
 
+// for SDL 1.2 controller buttons
+#include "thirdparty/SDL/SDL_gamecontroller.h"
+
 #include "Options.hpp"
-#include "common/Util.hpp"
+#include "common/Logger.hpp"
 #include "compat/KeyCodes.hpp"
 #include "client/app/Minecraft.hpp"
 
@@ -33,12 +36,12 @@ Options::Option
 
 void Options::_initDefaultValues()
 {
-	field_238 = 2;
+	m_difficulty = 2;
 	field_244 = 1.0f;
 	m_bDontRenderGui = false;
 	field_248 = 1.0f;
 	m_bThirdPerson = false;
-	field_0   = 1.0f;
+	m_fMusicVolume = 1.0f;
 	field_23E = 0;
 	m_fMasterVolume = 1.0f;
 	m_bFlyCheat = false;

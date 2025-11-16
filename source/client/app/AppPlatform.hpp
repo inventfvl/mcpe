@@ -13,13 +13,28 @@
 
 #include "client/renderer/Texture.hpp"
 #include "client/sound/SoundSystem.hpp"
+#include "AssetFile.hpp"
+
+#include "GameMods.hpp"
+
+#ifndef MOD_USE_BIGGER_SCREEN_SIZE
+#define C_DEFAULT_SCREEN_WIDTH  (854)
+#define C_DEFAULT_SCREEN_HEIGHT (480)
+#elif defined(__DREAMCAST__)
+#define C_DEFAULT_SCREEN_WIDTH  (800)
+#define C_DEFAULT_SCREEN_HEIGHT (600)
+#else
+#define C_DEFAULT_SCREEN_WIDTH  (1280)
+#define C_DEFAULT_SCREEN_HEIGHT (720)
+#endif
 
 class AppPlatform
 {
 public:
 	enum eDialogType
 	{
-		DLG_CREATE_WORLD = 1,
+		DLG_NONE,
+		DLG_CREATE_WORLD,
 		DLG_CHAT,
 		DLG_OPTIONS,
 		DLG_RENAME_MP_WORLD,
@@ -30,9 +45,17 @@ private:
 public:
 	static AppPlatform* const singleton();
 
+public:
 	AppPlatform();
-	~AppPlatform();
+	virtual ~AppPlatform();
 
+private:
+	virtual void _tick();
+
+protected:
+	virtual std::string _getPatchDataPath() const { return "patches/patch_data.txt"; }
+
+public:
 	virtual void buyGame();
 	virtual int checkLicense();
 	virtual void createUserInput();
@@ -72,6 +95,7 @@ public:
 	virtual int getKeyboardUpOffset();
   #endif
 	virtual void vibrate(int milliSeconds);
+    virtual bool getRecenterMouseEveryTick();
 	
 	void _fireLowMemory();
 	void _fireAppSuspended();
@@ -85,12 +109,13 @@ public:
 	virtual std::string getPatchData();
 	virtual void initSoundSystem();
 	virtual SoundSystem* const getSoundSystem() const;
+	// Used For Sounds
+	virtual std::string getAssetPath(const std::string& path) const;
+	virtual AssetFile readAssetFile(const std::string&, bool) const;
 #endif
 
 public:
-	virtual std::string getAssetPath(const std::string& path) const;
-
-private:
-	virtual void _tick();
+	//std::multimap<float, AppPlatformListener*> m_listeners;
+	void* m_hWND; // the Mojang solution
 };
 

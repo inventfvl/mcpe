@@ -9,12 +9,12 @@
 #include "world/level/Level.hpp"
 #include "world/entity/Rocket.hpp"
 
-RocketLauncherTile::RocketLauncherTile(int id) : Tile(id, 16*14+2, Material::wood)
+RocketLauncherTile::RocketLauncherTile(TileID id) : Tile(id, 16*14+2, Material::wood)
 {
 	setTicking(true);
 }
 
-int RocketLauncherTile::getTexture(Facing::Name face, int data) const
+int RocketLauncherTile::getTexture(Facing::Name face, TileData data) const
 {
 	return data == 1 ? 16*14+3 : 16*14+2;
 }
@@ -39,10 +39,10 @@ bool RocketLauncherTile::isSolidRender() const
 	return false;
 }
 
-int RocketLauncherTile::use(Level* level, const TilePos& pos, Player* player)
+bool RocketLauncherTile::use(Level* level, const TilePos& pos, Player* player)
 {
 	if (level->getData(pos) == 1)
-		return 1;
+		return true;
 
 	level->setData(pos, 1);
 
@@ -52,7 +52,7 @@ int RocketLauncherTile::use(Level* level, const TilePos& pos, Player* player)
 	// add a tick so that the rocket launcher will reset
 	level->addToTickNextTick(pos, m_ID, 10);
 
-	return 1;
+	return true;
 }
 
 void RocketLauncherTile::tick(Level* level, const TilePos& pos, Random* random)

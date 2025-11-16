@@ -6,7 +6,6 @@
 	SPDX-License-Identifier: BSD-1-Clause
  ********************************************************************/
 #include "Cow.hpp"
-#include "common/Utils.hpp"
 
 Cow::Cow(Level* pLevel) : Animal(pLevel)
 {
@@ -14,4 +13,14 @@ Cow::Cow(Level* pLevel) : Animal(pLevel)
 	field_C8 = RENDER_COW;
 	m_texture = "mob/cow.png";
 	setSize(0.9f, 1.3f);
+}
+
+void Cow::addAdditionalSaveData(CompoundTag& tag) const
+{
+	Animal::addAdditionalSaveData(tag);
+}
+
+void Cow::readAdditionalSaveData(const CompoundTag& tag)
+{
+	Animal::readAdditionalSaveData(tag);
 }

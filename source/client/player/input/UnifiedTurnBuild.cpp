@@ -9,7 +9,6 @@
 #include "UnifiedTurnBuild.hpp"
 #include "Multitouch.hpp"
 
-#include "common/Utils.hpp"
 #include "world/entity/Player.hpp"
 
 UnifiedTurnBuild::UnifiedTurnBuild(int a, int width, int height, float d, float e, IInputHolder* pHolder) :
@@ -182,7 +181,8 @@ bool UnifiedTurnBuild::tickBuild(Player* pPlayer, BuildActionIntention* pIntenti
 			intent = BuildActionIntention::INTERACT;
 			wroteIntention = true;
 		}
-		else */if (field_24 /* && pPlayer->isUsingItem()*/) // Holds off on acknowledging interact intent until the user is absolutely sure a tick later
+		// Holds off on acknowledging interact intent until the user is absolutely sure a tick later
+		else */if (field_24 /*&& pPlayer->isUsingItem()*/) // Adding pPlayer->isUsingItem() makes player break blocks way too fast when not holding items
 		{
 			intent = BuildActionIntention::TOUCH_HOLD_CONTINUE;
 			wroteIntention = true;

@@ -21,9 +21,11 @@ bld/
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
+.ignore/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
+.vscode/
 
 # Visual Studio 2017 auto generated files
 Generated\ Files/
@@ -123,7 +125,7 @@ xcuserdata/
 /sound_data
 
 # Ignore linux/mingw build artifacts.
-/build
+/build*
 /minecraftcpp
 /minecraftcpp.exe
 
@@ -211,12 +213,30 @@ xcuserdata/
 /game/assets/gui/touchgui2.png
 /game/assets/item/arrows.png
 /game/assets/item/sign.png
+# Sound
+/game/assets/sound
+/game/assets/newsound
+/game/assets/sound3
+/game/assets/music
+/game/assets/newmusic
 # Java
 /game/assets/terrain/sun.png
 /game/assets/terrain/moon.png
 /game/assets/misc/vignette.png
 /game/assets/misc/shadow.png
 /game/assets/misc/pumpkinblur.png
+/game/assets/environment/rain.png
+/game/assets/environment/snow.png
+/game/assets/item/boat.png
+/game/assets/item/cart.png
+/game/assets/item/door.png
+/game/assets/mob/ghast.png
+/game/assets/mob/ghast_fire.png
+/game/assets/mob/pigman.png
+/game/assets/mob/saddle.png
+/game/assets/mob/slime.png
+/game/assets/mob/spider_eyes.png
+/game/assets/mob/squid.png
 
 # Ignore the panorama textures. Adding them yourself will make the title screen use them.
 /game/assets/gui/background/panorama_0.png
@@ -242,3 +262,12 @@ xcuserdata/
 # Ignore options.txt - where your configuration will be saved
 /game/options.txt
 /game/assetsO
+
+# CLion
+/.idea
+/cmake-build-*
+
+# PCM sound extraction
+/tools/__pycache__
+/tools/venv
+/game/assets

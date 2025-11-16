@@ -8,11 +8,10 @@
 
 #include <stdint.h>
 #include "CThread.hpp"
-#include "common/Utils.hpp"
 
 #if	defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h> // for Sleep()
+#include <windows.h> // for Sleep()
 #else
 #include <unistd.h>
 #endif

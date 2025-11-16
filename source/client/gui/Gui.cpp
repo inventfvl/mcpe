@@ -196,12 +196,16 @@ void Gui::render(float f, bool bHaveScreen, int mouseX, int mouseY)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #endif
 
+	 // chat
+	 //blit(width - 18, 0, 200, 82, 18, 18, 18, 18);
+
 	int nSlots = getNumSlots();
 	int hotbarWidth = 2 + nSlots * 20;
 
 	// hotbar
 	int cenX = width / 2;
-	blit(cenX - hotbarWidth / 2, height - 22, 0, 0, hotbarWidth, 22, 0, 0);
+	blit(cenX - hotbarWidth / 2, height - 22, 0, 0, hotbarWidth-2, 22, 0, 0);
+	blit(cenX + hotbarWidth / 2 -2, height - 22, 180, 0, 2, 22, 0, 0);
 
 	Inventory* inventory = player->m_pInventory;
 
@@ -288,23 +292,24 @@ void Gui::render(float f, bool bHaveScreen, int mouseX, int mouseY)
 
 		int emptyHeartX = 16;
 		bool b1 = false;
-		if (player->field_B8 < 10)
+		if (player->m_invulnerableTime < 10)
 		{
-			b1 = player->field_B8 / 3 % 2;
+			b1 = player->m_invulnerableTime / 3 % 2;
 			emptyHeartX += 9 * b1;
 		}
-
+#if defined(ANDROID) || defined(TARGET_OS_IPHONE)
+		//@NOTE: Pocket-style health UI.
+		int heartX = 2;
+		int heartYStart = 2;
+#else
 		// @NOTE: At the default scale, this would go off screen.
-
 		int heartX = cenX - 191; // why?
 		int heartYStart = height - 10;
 
 		//@NOTE: Alpha-style health UI. I'll probably remove this on release.
-#ifndef ORIGINAL_CODE
 		heartX = cenX - 91;
 		heartYStart = height - 32;
 #endif
-
 		int playerHealth = player->m_health;
 
 		for (int healthNo = 1; healthNo <= C_MAX_MOB_HEALTH; healthNo += 2)
@@ -318,9 +323,9 @@ void Gui::render(float f, bool bHaveScreen, int mouseX, int mouseY)
 
 			if (b1)
 			{
-				if (healthNo < player->field_100)
+				if (healthNo < player->m_lastHealth)
 					blit(heartX, heartY, 70, 0, 9, 9, 0, 0);
-				else if (healthNo == player->field_100)
+				else if (healthNo == player->m_lastHealth)
 					blit(heartX, heartY, 79, 0, 9, 9, 0, 0);
 			}
 
@@ -337,15 +342,17 @@ void Gui::render(float f, bool bHaveScreen, int mouseX, int mouseY)
 			int breathRaw = player->m_airCapacity;
 			int breathFull  = int(ceilf((float(breathRaw - 2) * 10.0f) / 300.0f));
 			int breathMeter = int(ceilf((float(breathRaw)     * 10.0f) / 300.0f)) - breathFull;
-
+#if defined(ANDROID) || defined(TARGET_OS_IPHONE)
+			// pe
+			int bubbleX = 2;
+			int bubbleY = 12;
+#else
 			int bubbleX = cenX - 191;
 			int bubbleY = height - 19;
 
-#ifndef ORIGINAL_CODE
 			bubbleX = cenX - 91;
 			bubbleY = height - 41;
 #endif
-
 			//@NOTE: Not sure this works as it should
 
 			for (int bubbleNo = 0; bubbleNo < breathFull + breathMeter; bubbleNo++)
@@ -360,7 +367,7 @@ void Gui::render(float f, bool bHaveScreen, int mouseX, int mouseY)
 		}
 	}
 
-	textures->loadAndBindTexture("gui/gui_blocks.png");
+	textures->loadAndBindTexture(C_BLOCKS_NAME);
 
 	int diff = mc->isTouchscreen();
 
@@ -417,13 +424,24 @@ void Gui::renderSlot(int slot, int x, int y, float f)
 	Inventory* pInv = m_pMinecraft->m_pLocalPlayer->m_pInventory;
 
 	ItemInstance* pInst = pInv->getQuickSlotItem(slot);
-	if (!pInst)
+	if (ItemInstance::isNull(pInst))
 		return;
 
-	if (!pInst->m_itemID)
-		return;
+    float var6 = ((float)pInst->m_popTime) - f;
+    if (var6 > 0.0f)
+    {
+        glPushMatrix();
+        float var7 = 1.0f + var6 / 5.0f;
+        glTranslatef(x + 8, y + 12, 0.0f);
+        glScalef(1.0f / var7, (var7 + 1.0f) / 2.0f, 1.0f);
+        glTranslatef(-(x + 8), -(y + 12), 0.0f);
+    }
 
-	ItemRenderer::renderGuiItem(m_pMinecraft->m_pFont, m_pMinecraft->m_pTextures, pInst, x, y, true);
+    ItemRenderer::renderGuiItem(m_pMinecraft->m_pFont, m_pMinecraft->m_pTextures, pInst, x, y, true);
+    if (var6 > 0.0f)
+        glPopMatrix();
+
+    //ItemRenderer::renderGuiItemDecorations(m_pMinecraft->m_pFont, m_pMinecraft->m_pTextures, pInst, x, y);
 }
 
 void Gui::renderSlotOverlay(int slot, int x, int y, float f)
@@ -431,10 +449,7 @@ void Gui::renderSlotOverlay(int slot, int x, int y, float f)
 	Inventory* pInv = m_pMinecraft->m_pLocalPlayer->m_pInventory;
 
 	ItemInstance* pInst = pInv->getQuickSlotItem(slot);
-	if (!pInst)
-		return;
-
-	if (!pInst->m_itemID)
+	if (ItemInstance::isNull(pInst))
 		return;
 
 	ItemRenderer::renderGuiItemOverlay(m_pMinecraft->m_pFont, m_pMinecraft->m_pTextures, pInst, x, y);
@@ -481,6 +496,26 @@ void Gui::handleClick(int clickID, int mouseX, int mouseY)
 		m_pMinecraft->setScreen(new IngameBlockSelectionScreen);
 	else
 		m_pMinecraft->m_pLocalPlayer->m_pInventory->selectSlot(slot);
+}
+
+void Gui::handleScroll(bool down)
+{
+	int slot = m_pMinecraft->m_pLocalPlayer->m_pInventory->m_selectedHotbarSlot;
+
+	int maxItems = getNumUsableSlots() - 1;
+
+	if (down)
+	{
+		if (slot++ == maxItems)
+			slot = 0;
+	}
+	else
+	{
+		if (slot-- == 0)
+			slot = maxItems;
+	}
+
+	m_pMinecraft->m_pLocalPlayer->m_pInventory->selectSlot(slot);
 }
 
 void Gui::handleKeyPressed(int keyCode)
@@ -532,6 +567,8 @@ void Gui::renderMessages(bool bShowAll)
 	int height = int(ceilf(Minecraft::height * InvGuiScale));
 
 	int topEdge = height - 49;
+	if (m_pMinecraft->isTouchscreen())
+		topEdge = 49;
 
 	for (int i = 0; i < int(m_guiMessages.size()); i++)
 	{
@@ -573,7 +610,7 @@ void Gui::renderMessages(bool bShowAll)
 int Gui::getNumSlots()
 {
 	if (m_pMinecraft->isTouchscreen())
-		return 4;
+		return 8;
 
 	return 9;
 }

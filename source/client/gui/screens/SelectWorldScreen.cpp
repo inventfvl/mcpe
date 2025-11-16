@@ -9,8 +9,8 @@
 #include "SelectWorldScreen.hpp"
 #include "DeleteWorldScreen.hpp"
 #include "CreateWorldScreen.hpp"
-#include "ProgressScreen.hpp"
 #include "StartMenuScreen.hpp"
+#include "ProgressScreen.hpp"
 #include "common/Util.hpp"
 
 SelectWorldScreen::SelectWorldScreen() :
@@ -23,6 +23,11 @@ SelectWorldScreen::SelectWorldScreen() :
 	m_btnDelete.m_bEnabled = false;
 	field_12C = false;
 	field_130 = 0;
+}
+
+SelectWorldScreen::~SelectWorldScreen()
+{
+    SAFE_DELETE(m_pWorldSelectionList);
 }
 
 void SelectWorldScreen::init()
@@ -129,9 +134,12 @@ void SelectWorldScreen::tick()
 			}
 		}
 
-		m_pMinecraft->selectLevel(levelUniqueName, levelNickname, seed);
-		m_pMinecraft->hostMultiplayer();
-		m_pMinecraft->setScreen(new ProgressScreen);
+		GameType gameType = GAME_TYPE_CREATIVE;
+		if (userInput.size() > 2 && userInput[2].compare("survival") == 0)
+			gameType = GAME_TYPE_SURVIVAL;
+
+		LevelSettings settings(seed, gameType);
+		m_pMinecraft->selectLevel(levelUniqueName, levelNickname, settings);
 
 		// @BUG: Use of deallocated memory. SetScreen frees us
 #ifdef ORIGINAL_CODE
@@ -144,17 +152,14 @@ void SelectWorldScreen::tick()
 	m_pWorldSelectionList->tick();
 	if (m_pWorldSelectionList->field_90)
 	{
-		LevelSummary& ls = m_pWorldSelectionList->m_levelSummary;
-		m_pMinecraft->selectLevel(ls.m_fileName, ls.m_levelName, 0);
-		m_pMinecraft->hostMultiplayer();
-		m_pMinecraft->setScreen(new ProgressScreen);
+        m_pMinecraft->selectLevel(m_pWorldSelectionList->m_levelSummary);
 		return;
 	}
 
 	// the level summary stuff is unused.
-	LevelSummary ls;
+	/*LevelSummary ls;
 	if (isIndexValid(m_pWorldSelectionList->m_selectedIndex))
-		ls = m_pWorldSelectionList->m_items[m_pWorldSelectionList->m_selectedIndex];
+		ls = m_pWorldSelectionList->m_items[m_pWorldSelectionList->m_selectedIndex];*/
 
 	m_btnDelete.m_bEnabled = isIndexValid(m_pWorldSelectionList->m_selectedIndex);
 }
@@ -220,6 +225,11 @@ void SelectWorldScreen::buttonClicked(Button* pButton)
 	{
 		m_pWorldSelectionList->selectItem(m_pWorldSelectionList->getItemAtPosition(m_width / 2, m_height / 2), false);
 	}
+}
+
+void SelectWorldScreen::handleScroll(bool down)
+{
+	m_pWorldSelectionList->handleScroll(down);
 }
 
 bool SelectWorldScreen::isIndexValid(int idx)

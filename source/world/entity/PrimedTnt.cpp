@@ -8,12 +8,13 @@
 
 #include "PrimedTnt.hpp"
 #include "world/level/Level.hpp"
+#include "nbt/CompoundTag.hpp"
 
 void PrimedTnt::_init()
 {
 	m_fuseTimer = 0;
 	field_C8 = RENDER_TNT;
-	field_34 = 1;
+    m_bBlocksBuilding = true;
 	setSize(0.98f, 0.98f);
 	m_heightOffset = m_bbHeight * 0.5f;
 	m_bMakeStepSound = false;
@@ -59,7 +60,7 @@ void PrimedTnt::tick()
 	move(m_vel);
 
 	m_vel *= 0.98f;
-	if (m_onGround)
+	if (m_bOnGround)
 	{
 		m_vel.x *= 0.7f;
 		m_vel.z *= 0.7f;
@@ -76,4 +77,14 @@ void PrimedTnt::tick()
 	{
 		m_pLevel->addParticle("smoke", Vec3(m_pos.x, m_pos.y + 0.5f, m_pos.z));
 	}
+}
+
+void PrimedTnt::addAdditionalSaveData(CompoundTag& tag) const
+{
+	tag.putInt8("Fuse", m_fuseTimer);
+}
+
+void PrimedTnt::readAdditionalSaveData(const CompoundTag& tag)
+{
+	m_fuseTimer = tag.getInt8("Fuse");
 }

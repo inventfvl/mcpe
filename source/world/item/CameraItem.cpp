@@ -18,11 +18,11 @@ CameraItem::CameraItem(int id) : Item(id)
 {
 }
 
-ItemInstance* CameraItem::use(ItemInstance* inst, Level* level, Player* player)
+ItemInstance* CameraItem::use(ItemInstance* inst, Level* level, Player* player) const
 {
 #ifndef ORIGINAL_CODE
 	// prevent players from using this in multiplayer, to prevent a desync of entity IDs
-	if (level->m_bIsMultiplayer)
+	if (level->m_bIsClientSide)
 		return inst;
 #endif
 

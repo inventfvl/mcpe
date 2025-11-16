@@ -32,9 +32,9 @@ Entity* PathfinderMob::findAttackTarget()
 	return nullptr;
 }
 
-bool PathfinderMob::checkHurtTarget(Entity* pEnt, float f)
+void PathfinderMob::checkHurtTarget(Entity* pEnt, float f)
 {
-	return false;
+	// Override this function in your own mob.
 }
 
 void PathfinderMob::checkCantSeeTarget(Entity* pEnt, float f)
@@ -91,7 +91,7 @@ float PathfinderMob::getWalkingSpeedModifier() const
 	return mod;
 }
 
-bool PathfinderMob::canSpawn() const
+bool PathfinderMob::canSpawn()
 {
 	if (!Mob::canSpawn())
 		return false;
@@ -135,7 +135,7 @@ void PathfinderMob::updateAi()
 	}
 	else if (!m_bHoldGround && ((m_path.empty() && m_random.nextInt(180) == 0) || field_BA4 > 0 || m_random.nextInt(120) == 0))
 	{
-		if (field_AFC < 100)
+		if (m_noActionTime < 100)
 			findRandomStrollLocation();
 	}
 
@@ -212,7 +212,7 @@ void PathfinderMob::updateAi()
 		lookAt(m_pAttackTarget, MAX_TURN, MAX_TURN);
 
 	// if we hit a wall while moving
-	if (m_bHorizontalCollision && !isPathFinding())
+	if (m_bHorizontalCollision && isPathFinding())
 		m_bJumping = true;
 
 	// if we're in water, try to swim up

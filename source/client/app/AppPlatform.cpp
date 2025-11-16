@@ -6,8 +6,11 @@
 	SPDX-License-Identifier: BSD-1-Clause
  ********************************************************************/
 
+#include <fstream>
+
 #include "AppPlatform.hpp"
-#include "common/Utils.hpp"
+#include "common/Logger.hpp"
+#include "compat/LegacyCPP.hpp"
 
 AppPlatform* AppPlatform::m_singleton = nullptr;
 
@@ -19,6 +22,7 @@ AppPlatform* const AppPlatform::singleton()
 AppPlatform::AppPlatform()
 {
 	m_singleton = this;
+	m_hWND = nullptr;
 }
 
 AppPlatform::~AppPlatform()
@@ -53,7 +57,20 @@ void AppPlatform::finish()
 
 std::string AppPlatform::getDateString(int time)
 {
-	return "";
+	time_t tt = time;
+	struct tm t;
+#ifdef _WIN32
+	gmtime_s(&t, &tt);
+#else
+	gmtime_r(&tt, &t);
+#endif
+    
+	// Format String
+	char buf[2048];
+	strftime(buf, sizeof buf, "%b %d %Y %H:%M:%S", &t);
+    
+	// Return
+	return std::string(buf);
 }
 
 // ??? AppPlatform::getOptionStrings()
@@ -189,6 +206,11 @@ void AppPlatform::vibrate(int milliSeconds)
 {
 }
 
+bool AppPlatform::getRecenterMouseEveryTick()
+{
+    return true;
+}
+
 void AppPlatform::_fireLowMemory()
 {
 	
@@ -226,7 +248,61 @@ bool AppPlatform::hasFileSystemAccess()
 
 std::string AppPlatform::getPatchData()
 {
-	return "";
+	AssetFile file = readAssetFile(_getPatchDataPath(), false);
+	if (!file.data)
+		return "";
+
+	std::string out = std::string(file.data, file.data + file.size);
+	delete file.data;
+	return out;
+}
+
+std::string AppPlatform::getAssetPath(const std::string& path) const
+{
+	std::string realPath = path;
+	if (realPath.size() && realPath[0] == '/')
+	{
+		// trim it off
+		realPath = realPath.substr(1);
+	}
+	realPath = "assets/" + realPath;
+
+	return realPath;
+}
+
+AssetFile AppPlatform::readAssetFile(const std::string& path, bool quiet) const
+{
+	std::string realPath = getAssetPath(path);
+	std::ifstream ifs(realPath.c_str(), std::ios::binary);
+    
+	// Open File
+	if (!ifs.is_open())
+	{
+		if (!quiet) LOG_W("Couldn't find asset file: %s", realPath.c_str());
+		return AssetFile();
+	}
+    
+    std::filebuf* pbuf = ifs.rdbuf();
+    
+	// Get File Size
+    std::streamoff size = pbuf->pubseekoff(0, ifs.end, ifs.in);
+    pbuf->pubseekpos(0, ifs.in);
+	if (size < 0)
+	{
+		if (!quiet) LOG_E("Error determining the size of the asset file!");
+		ifs.close();
+		return AssetFile();
+	}
+    
+	// Read Data
+	char *buf = new char[size];
+    pbuf->sgetn(buf, (std::streamsize)size);
+    
+	// Close File
+    ifs.close();
+    
+	// Return
+	return AssetFile((int64_t)size, (unsigned char*)buf);
 }
 
 void AppPlatform::initSoundSystem()
@@ -239,16 +315,3 @@ SoundSystem* const AppPlatform::getSoundSystem() const
 }
 
 #endif
-
-std::string AppPlatform::getAssetPath(const std::string &path) const
-{
-	std::string realPath = path;
-	if (realPath.size() && realPath[0] == '/')
-	{
-		// trim it off
-		realPath = realPath.substr(1);
-	}
-	realPath = "assets/" + realPath;
-	
-	return realPath;
-}

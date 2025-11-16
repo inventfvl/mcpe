@@ -6,6 +6,8 @@
 	SPDX-License-Identifier: BSD-1-Clause
  ********************************************************************/
 
+#include <sstream>
+
 #include "MobRenderer.hpp"
 #include "EntityRenderDispatcher.hpp"
 #include "client/app/Minecraft.hpp"
@@ -15,6 +17,12 @@ MobRenderer::MobRenderer(Model* pModel, float f)
 	m_pArmorModel = nullptr;
 	m_pModel = pModel;
 	m_shadowRadius = f;
+}
+
+MobRenderer::~MobRenderer()
+{
+    SAFE_DELETE(m_pModel);
+    SAFE_DELETE(m_pArmorModel);
 }
 
 void MobRenderer::setArmor(Model* model)
@@ -38,7 +46,7 @@ float MobRenderer::getAttackAnim(Mob* mob, float f)
 
 float MobRenderer::getBob(Mob* mob, float f)
 {
-	return float(mob->field_B4) + f;
+	return float(mob->m_tickCount) + f;
 }
 
 float MobRenderer::getFlipDegrees(Mob* mob)
@@ -56,21 +64,21 @@ void MobRenderer::scale(Mob*, float)
 
 }
 
-void MobRenderer::setupPosition(Entity* entity, float x, float y, float z)
+void MobRenderer::setupPosition(Entity* entity, const Vec3& pos)
 {
 	// @HACK: I eye-balled a corrective offset of 1/13, since I still can't figure out why all mobs are floating - Brent
 	// This was due to "0.059375f" being used for scale instead of "0.0625f"
-	glTranslatef(x, y, z);
+	glTranslatef(pos.x, pos.y, pos.z);
 }
 
-void MobRenderer::setupRotations(Entity* entity, float x, float y, float z)
+void MobRenderer::setupRotations(Entity* entity, float bob, float bodyRot, float a)
 {
-	glRotatef(180.0f - y, 0.0f, 1.0f, 0.0f);
+	glRotatef(180.0f - bodyRot, 0.0f, 1.0f, 0.0f);
 
 	Mob* mob = (Mob*)entity;
-	if (mob->field_110 > 0)
+	if (mob->m_deathTime > 0)
 	{
-		float t = Mth::sqrt((float(mob->field_110) + z - 1.0f) / 20.0f * 1.6f);
+		float t = Mth::sqrt((float(mob->m_deathTime) + a - 1.0f) / 20.0f * 1.6f);
 		if (t > 1.0f)
 			t = 1.0f;
 
@@ -78,7 +86,7 @@ void MobRenderer::setupRotations(Entity* entity, float x, float y, float z)
 	}
 }
 
-void MobRenderer::render(Entity* entity, float x, float y, float z, float unused, float f)
+void MobRenderer::render(Entity* entity, const Vec3& pos, float unused, float f)
 {
 	Mob* pMob = (Mob*)entity;
 
@@ -95,12 +103,12 @@ void MobRenderer::render(Entity* entity, float x, float y, float z, float unused
 		m_pArmorModel->m_bIsBaby = m_pModel->m_bIsBaby;
 	}
 
-	float aYaw   = pMob->m_rotPrev.x + (pMob->m_rot.x   - pMob->m_rotPrev.x) * f;
-	float aPitch = pMob->m_rotPrev.y + (pMob->m_rot.y - pMob->m_rotPrev.y) * f;
+	float aYaw   = pMob->m_oRot.x + (pMob->m_rot.x   - pMob->m_oRot.x) * f;
+	float aPitch = pMob->m_oRot.y + (pMob->m_rot.y - pMob->m_oRot.y) * f;
 	float fBob   = getBob(pMob, f);
 	float fSmth  = pMob->field_EC + (pMob->field_E8 - pMob->field_EC) * f;
 
-	setupPosition(pMob, x, y - pMob->m_heightOffset, z);
+	setupPosition(pMob, Vec3(pos.x, pos.y - pMob->m_heightOffset, pos.z));
 	setupRotations(pMob, fBob, fSmth, f);
 
 	float fScale = 0.0625f; // the scale variable according to b1.2_02
@@ -109,10 +117,10 @@ void MobRenderer::render(Entity* entity, float x, float y, float z, float unused
 	//glTranslatef(0.0f, -1.5078f, 0.0f);
 	glTranslatef(0.0f, -24.0f * fScale - (1.0f / 128.0f), 0.0f);
 
-	float x1 = pMob->field_128 + (pMob->field_12C - pMob->field_128) * f;
+	float x1 = pMob->field_128 + (pMob->m_walkAnimSpeed - pMob->field_128) * f;
 	if (x1 > 1.0f)
 		x1 = 1.0f;
-	float x2 = pMob->field_130 - pMob->field_12C * (1.0f - f);
+	float x2 = pMob->field_130 - pMob->m_walkAnimSpeed * (1.0f - f);
 
 	bindTexture(pMob->getTexture());
 	glEnable(GL_ALPHA_TEST);
@@ -136,7 +144,7 @@ void MobRenderer::render(Entity* entity, float x, float y, float z, float unused
 	float fBright = pMob->getBrightness(f);
 	int iOverlayColor = getOverlayColor(pMob, fBright, f);
 
-	if (GET_ALPHA(iOverlayColor) || pMob->m_hurtTime > 0 || pMob->field_110 > 0)
+	if (GET_ALPHA(iOverlayColor) || pMob->m_hurtTime > 0 || pMob->m_deathTime > 0)
 	{
 		glDisable(GL_TEXTURE_2D);
 		glDisable(GL_ALPHA_TEST);
@@ -144,7 +152,7 @@ void MobRenderer::render(Entity* entity, float x, float y, float z, float unused
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDepthFunc(GL_EQUAL);
 
-		if (pMob->m_hurtTime > 0 || pMob->field_110 > 0)
+		if (pMob->m_hurtTime > 0 || pMob->m_deathTime > 0)
 		{
 			glColor4f(fBright, 0.0f, 0.0f, 0.4f);
 			m_pModel->render(x2, x1, fBob, aYaw - fSmth, aPitch, fScale); // was 0.059375f. Why?
@@ -188,23 +196,37 @@ void MobRenderer::render(Entity* entity, float x, float y, float z, float unused
 	
 	glEnable(GL_CULL_FACE);
 	glPopMatrix();
-	renderName(pMob, x, y, z);
+	renderName(pMob, pos);
 }
 
-void MobRenderer::renderName(Mob* mob, float x, float y, float z)
+void MobRenderer::onGraphicsReset()
 {
-	if (!mob->isPlayer())
-		return;
-
-	Player* player = (Player*)mob;
-	if (player == m_pDispatcher->m_pMinecraft->m_pLocalPlayer)
-		return;
-
-	// @TODO: don't know why but I have to add this correction. look into it and fix it!
-	renderNameTag(mob, player->m_name, x, y - 1.5f, z, mob->isSneaking() ? 32 : 64);
+	m_pModel->onGraphicsReset();
 }
 
-void MobRenderer::renderNameTag(Mob* mob, const std::string& str, float x, float y, float z, int a)
+void MobRenderer::renderName(Mob* mob, const Vec3& pos)
+{
+	if (mob->isPlayer())
+	{
+		Player* player = (Player*)mob;
+		if (player == m_pDispatcher->m_pMinecraft->m_pLocalPlayer)
+			return;
+
+		// @TODO: don't know why but I have to add this correction. look into it and fix it!
+		renderNameTag(mob, player->m_name, Vec3(pos.x, pos.y - 1.5f, pos.z), mob->isSneaking() ? 32 : 64);
+	}
+	else
+	{
+		if (m_pDispatcher->m_pOptions->m_bDebugText)
+		{
+			std::stringstream ss;
+			ss << mob->m_EntityID;
+			renderNameTag(mob, ss.str(), pos, 64);
+		}
+	}
+}
+
+void MobRenderer::renderNameTag(Mob* mob, const std::string& str, const Vec3& pos, int a)
 {
 	if (mob->distanceToSqr(m_pDispatcher->m_pMob) > float(a * a))
 		return;
@@ -212,8 +234,10 @@ void MobRenderer::renderNameTag(Mob* mob, const std::string& str, float x, float
 	Font* font = getFont();
 
 	glPushMatrix();
-	glTranslatef(x + 0.0f, y + 2.3f, z);
+	glTranslatef(pos.x + 0.0f, pos.y + 2.3f, pos.z);
+#ifndef __EMSCRIPTEN__
 	glNormal3f(0.0f, 1.0f, 0.0f);
+#endif
 	// billboard the name towards the camera
 	glRotatef(-m_pDispatcher->m_rot.x,   0.0f, 1.0f, 0.0f);
 	glRotatef(+m_pDispatcher->m_rot.y, 1.0f, 0.0f, 0.0f);

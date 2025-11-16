@@ -30,7 +30,7 @@ void GameRenderer::_init()
 
 	field_8 = 0.0f;
 	field_C = 0;
-	field_10 = nullptr;
+	m_pHovered = nullptr;
 	field_14 = 0.0f;
 	field_18 = 0.0f;
 	field_1C = 0.0f;
@@ -200,8 +200,8 @@ void GameRenderer::moveCameraToPlayer(float f)
 
 	if (!m_pMinecraft->getOptions()->field_241)
 	{
-		glRotatef(pMob->m_rotPrev.y + f * (pMob->m_rot.y - pMob->m_rotPrev.y), 1.0f, 0.0f, 0.0f);
-		glRotatef(pMob->m_rotPrev.x + f * (pMob->m_rot.x - pMob->m_rotPrev.x) + 180.0f, 0.0f, 1.0f, 0.0f);
+		glRotatef(pMob->m_oRot.y + f * (pMob->m_rot.y - pMob->m_oRot.y), 1.0f, 0.0f, 0.0f);
+		glRotatef(pMob->m_oRot.x + f * (pMob->m_rot.x - pMob->m_oRot.x) + 180.0f, 0.0f, 1.0f, 0.0f);
 	}
 
 	glTranslatef(0.0f, headHeightDiff, 0.0f);
@@ -231,7 +231,7 @@ void GameRenderer::bobHurt(float f)
 	Mob* pMob = m_pMinecraft->m_pMobPersp;
 
 	if (pMob->m_health <= 0)
-		glRotatef(-8000.0f / (float(pMob->field_110) + f + 200.0f) + 40.0f, 0.0f, 0.0f, 1.0f);
+		glRotatef(-8000.0f / (float(pMob->m_deathTime) + f + 200.0f) + 40.0f, 0.0f, 0.0f, 1.0f);
 
 	if (pMob->m_hurtTime > 0)
 	{
@@ -249,8 +249,8 @@ void GameRenderer::bobView(float f)
 		return;
 
 	Player* player = (Player*)m_pMinecraft->m_pMobPersp;
-	float f1 = Mth::Lerp(player->field_B9C, player->field_BA0, f);
-	float f2 = Mth::Lerp(player->field_118, player->field_11C, f);
+	float f1 = Mth::Lerp(player->m_oBob, player->m_bob, f);
+	float f2 = Mth::Lerp(player->m_oTilt, player->m_tilt, f);
 	// @NOTE: Multiplying by M_PI inside of the paren makes it stuttery for some reason? Anyways it works now :)
 	float f3 = -(player->m_walkDist + (player->m_walkDist - player->field_90) * f) * float(M_PI);
 	float f4 = Mth::sin(f3);
@@ -331,7 +331,9 @@ void GameRenderer::setupFog(int i)
 	fog_color[3] = 1.0f;
 
 	glFogfv(GL_FOG_COLOR, fog_color);
+#ifndef __EMSCRIPTEN__
 	glNormal3f(0.0f, -1.0f, 0.0f);
+#endif
 	glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 
 	if (m_pMinecraft->m_pMobPersp->isUnderLiquid(Material::water))
@@ -391,7 +393,7 @@ float GameRenderer::getFov(float f)
 
 	if (pMob->m_health <= 0)
 	{
-		float x2 = 1.0f + (-500.0f / ((pMob->field_110 + f) + 500.0f));
+		float x2 = 1.0f + (-500.0f / ((pMob->m_deathTime + f) + 500.0f));
 		x1 /= (1.0f + 2.0f * x2);
 	}
 
@@ -502,7 +504,7 @@ void GameRenderer::renderLevel(float f)
 		glShadeModel(GL_SMOOTH);
 #endif
 
-		glEnable(GL_BLEND);
+		//glEnable(GL_BLEND);
 		glDisable(GL_CULL_FACE);
 		// glDepthMask(false); -- added in 0.1.1j. Introduces more issues than fixes
 
@@ -687,7 +689,19 @@ void GameRenderer::render(float f)
 
 	if (m_pMinecraft->getOptions()->m_bDebugText)
 	{
-		if (m_pMinecraft->m_pLocalPlayer)
+		/*
+		 * The "!m_pMinecraft->m_bPreparingLevel" check *needs* to be here.
+		 * If said check is not here, when getBiome() is called for the biome display,
+		 * it would allocate an array with a size of 1 before the level was even generated.
+		 * Then, during level generation, said array would be written to as if it had a size
+		 * of 256, leading to a heap corruption that took ASan to debug successfully.
+		 * Unfortunately, ASan and DirectSound don't mix, and Microsoft's ASan team has stated that they don't even know why:
+		 * https://developercommunity.visualstudio.com/t/ASAN-x64-causes-unhandled-exception-at-0/1365655#T-N10460750
+		 * Since all SoundSystems are backed with DirectSound, SoundSystemNull is needed to use ASan.
+		 * This heap corruption bug, which (only if the F3 menu was open) would cause multiplayer functionality to be entirely
+		 * based on luck, had been around since Commit 53200be, on March 5th of 2025, and was fixed on September 30th of 2025.
+		 */
+		if (m_pMinecraft->m_pLocalPlayer && !m_pMinecraft->m_bPreparingLevel)
 		{
 			char posStr[96];
 			Vec3 pos = m_pMinecraft->m_pLocalPlayer->getPos(f);
@@ -978,7 +992,7 @@ void GameRenderer::pick(float f)
 
 	Mob* pMob = m_pMinecraft->m_pMobPersp;
 	HitResult& mchr = m_pMinecraft->m_hitResult;
-	float dist = m_pMinecraft->m_pGameMode->getPickRange();
+	float dist = m_pMinecraft->m_pGameMode->getBlockReachDistance();
 	bool isFirstPerson = !m_pMinecraft->getOptions()->m_bThirdPerson;
 
 	if (!m_pMinecraft->useSplitControls())
@@ -1063,19 +1077,20 @@ void GameRenderer::pick(float f)
 
 	Vec3 mobPos = pMob->getPos(f);
 
-	if (m_pMinecraft->m_hitResult.m_hitType != HitResult::NONE)
+	if (mchr.m_hitType != HitResult::NONE)
 		dist = mchr.m_hitPos.distanceTo(mobPos);
 
-	if (m_pMinecraft->m_pGameMode->isCreativeType())
+	float maxEntityDist = m_pMinecraft->m_pGameMode->getEntityReachDistance();
+	/*if (m_pMinecraft->m_pGameMode->isCreativeType())
 		dist = 7.0f;
-	else if (dist > 3.0f)
-		dist = 3.0f;
+	else */if (dist > maxEntityDist)
+		dist = maxEntityDist;
 
 	Vec3 view = pMob->getViewVector(f);
 	Vec3 exp  = view * dist;
 	Vec3 limit = mobPos + view * dist;
 
-	field_10 = nullptr;
+	m_pHovered = nullptr;
 
 	AABB scanAABB = pMob->m_hitbox;
 
@@ -1107,7 +1122,7 @@ void GameRenderer::pick(float f)
 			if (fDist >= 0.0f)
 			{
 				//this is it brother
-				field_10 = pEnt;
+				m_pHovered = pEnt;
 				fDist = 0.0f;
 			}
 			continue;
@@ -1122,20 +1137,20 @@ void GameRenderer::pick(float f)
 
 			if (fDist > fNewDist || fDist == 0.0f)
 			{
-				field_10 = pEnt;
+				m_pHovered = pEnt;
 				fDist = fNewDist;
 			}
 		}
 	}
 
 	// picked entities take priority over tiles (?!)
-	if (field_10)
+	if (m_pHovered)
 	{
-		m_pMinecraft->m_hitResult = HitResult(field_10);
+		mchr = HitResult(m_pHovered);
 		return;
 	}
 
-	if (m_pMinecraft->m_hitResult.m_hitType != HitResult::NONE || view.y >= -0.7f)
+	if (mchr.m_hitType != HitResult::NONE || view.y >= -0.7f)
 		return;
 
 	mobPos = pMob->getPos(f);
@@ -1152,11 +1167,11 @@ void GameRenderer::pick(float f)
 
 	if (fabsf(view.x) <= fabsf(view.z))
 	{
-		m_pMinecraft->m_hitResult.m_hitSide = view.z >= 0.0f ? Facing::SOUTH : Facing::NORTH;
+		mchr.m_hitSide = view.z >= 0.0f ? Facing::SOUTH : Facing::NORTH;
 	}
 	else
 	{
-		m_pMinecraft->m_hitResult.m_hitSide = view.x >= 0.0f ? Facing::EAST : Facing::WEST;
+		mchr.m_hitSide = view.x >= 0.0f ? Facing::EAST : Facing::WEST;
 	}
 }
 
