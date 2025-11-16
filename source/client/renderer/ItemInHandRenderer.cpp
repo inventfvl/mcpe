@@ -41,125 +41,127 @@ void ItemInHandRenderer::itemUsed()
 void ItemInHandRenderer::renderItem(ItemInstance* inst)
 {
 #ifndef ORIGINAL_CODE
-	if (inst->m_itemID < 0)
-		return;
+    if (ItemInstance::isNull(inst))
+        return;
 #endif
-
-	glPushMatrix();
+    
+    glPushMatrix();
 #ifdef ENH_SHADE_HELD_TILES
-	float bright = m_pMinecraft->m_pLocalPlayer->getBrightness(0.0f);
+    float bright = m_pMinecraft->m_pLocalPlayer->getBrightness(0.0f);
 #endif
-
-	if (inst->m_itemID <= C_MAX_TILES && TileRenderer::canRender(Tile::tiles[inst->m_itemID]->getRenderShape()))
-	{
-		float red, grn, blu, alp = 1.0f;
-
-		if (inst->m_itemID == Tile::leaves->m_ID)
-		{
-			red = 0.35f;
-			grn = 0.65f;
-			blu = 0.25f;
-		}
-		else
-		{
-			blu = grn = red = 1.0f;
-		}
-
-		glColor4f(red, grn, blu, alp);
-
-		m_pMinecraft->m_pTextures->loadAndBindTexture(C_TERRAIN_NAME);
-
+    
+    Tile* pTile = inst->getTile();
+    if (pTile && TileRenderer::canRender(pTile->getRenderShape()))
+    {
+        float red, grn, blu, alp = 1.0f;
+        
+        if (pTile == Tile::leaves)
+        {
+            red = 0.35f;
+            grn = 0.65f;
+            blu = 0.25f;
+        }
+        else
+        {
+            blu = grn = red = 1.0f;
+        }
+        
+        glColor4f(red, grn, blu, alp);
+        
+        m_pMinecraft->m_pTextures->loadAndBindTexture(C_TERRAIN_NAME);
+        
 #ifdef ENH_SHADE_HELD_TILES
 #	define ARGPATCH , bright
 #else
 #	define ARGPATCH
 #endif
-
-		m_tileRenderer.renderTile(Tile::tiles[inst->m_itemID], inst->getAuxValue() ARGPATCH);
-
+        
+        m_tileRenderer.renderTile(pTile, inst->getAuxValue() ARGPATCH);
+        
 #ifdef ARGPATCH
 #	undef ARGPATCH
 #endif
-
-		glPopMatrix();
-		return;
-	}
-
-	std::string toBind;
-	if (inst->m_itemID <= C_MAX_TILES)
-		toBind = C_TERRAIN_NAME;
-	else
-		toBind = "gui/items.png";
-	m_pMinecraft->m_pTextures->loadAndBindTexture(toBind);
-
-	constexpr float C_RATIO     = 1.0f / 256.0f;
-	constexpr float C_RATIO_2   = 1.0f / 512.0f;
-	constexpr float C_ONE_PIXEL = 1.0f / 16.0f;
-
-	int textureX = inst->getIcon() % 16 * 16;
-	int textureY = inst->getIcon() / 16 * 16;
-
-	float texU_1 = C_RATIO * float(textureX + 0.0f);
-	float texU_2 = C_RATIO * float(textureX + 15.99f);
-	float texV_1 = C_RATIO * float(textureY + 0.0f);
-	float texV_2 = C_RATIO * float(textureY + 15.99f);
-
-	Tesselator& t = Tesselator::instance;
-	glTranslatef(-0.0f, -0.3f, 0.0f);
-	glScalef(1.5f, 1.5f, 1.5f);
-	glRotatef(50.0f, 0.0f, 1.0f, 0.0f);
-	glRotatef(335.0f, 0.0f, 0.0f, 1.0f);
-	glTranslatef(-0.9375f, -0.0625f, 0.0f);
-
-	t.begin();
-	SHADE_IF_NEEDED(1.0f);
-
-	t.normal(0.0f, 0.0f, 1.0f);
-	t.vertexUV(0.0f, 0.0f, 0.0f,         texU_2, texV_2);
-	t.vertexUV(1.0f, 0.0f, 0.0f,         texU_1, texV_2);
-	t.vertexUV(1.0f, 1.0f, 0.0f,         texU_1, texV_1);
-	t.vertexUV(0.0f, 1.0f, 0.0f,         texU_2, texV_1);
-
-	t.normal(0.0f, 0.0f, -1.0f);
-	t.vertexUV(0.0f, 1.0f, -C_ONE_PIXEL, texU_2, texV_1);
-	t.vertexUV(1.0f, 1.0f, -C_ONE_PIXEL, texU_1, texV_1);
-	t.vertexUV(1.0f, 0.0f, -C_ONE_PIXEL, texU_1, texV_2);
-	t.vertexUV(0.0f, 0.0f, -C_ONE_PIXEL, texU_2, texV_2);
-
-	SHADE_IF_NEEDED(0.8f);
-	t.normal(-1.0f, 0.0f, 0.0f);
-	for (int i = 0; i < 16; i++)
-	{
-		t.vertexUV(i * C_ONE_PIXEL, 0.0f, -C_ONE_PIXEL, Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_2);
-		t.vertexUV(i * C_ONE_PIXEL, 0.0f, 0.0f,         Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_2);
-		t.vertexUV(i * C_ONE_PIXEL, 1.0f, 0.0f,         Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_1);
-		t.vertexUV(i * C_ONE_PIXEL, 1.0f, -C_ONE_PIXEL, Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_1);
-	}
-	for (int i = 0; i < 16; i++)
-	{
-		t.vertexUV((i + 1) * C_ONE_PIXEL, 1.0f, -C_ONE_PIXEL, Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_1);
-		t.vertexUV((i + 1) * C_ONE_PIXEL, 1.0f, 0.0f,         Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_1);
-		t.vertexUV((i + 1) * C_ONE_PIXEL, 0.0f, 0.0f,         Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_2);
-		t.vertexUV((i + 1) * C_ONE_PIXEL, 0.0f, -C_ONE_PIXEL, Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_2);
-	}
-
-	SHADE_IF_NEEDED(0.6f);
-	for (int i = 0; i < 16; i++)
-	{
-		t.vertexUV(0.0f, (i + 1) * C_ONE_PIXEL, 0.0f,         texU_2, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
-		t.vertexUV(1.0f, (i + 1) * C_ONE_PIXEL, 0.0f,         texU_1, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
-		t.vertexUV(1.0f, (i + 1) * C_ONE_PIXEL, -C_ONE_PIXEL, texU_1, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
-		t.vertexUV(0.0f, (i + 1) * C_ONE_PIXEL, -C_ONE_PIXEL, texU_2, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
-	}
-	for (int i = 0; i < 16; i++)
-	{
-		t.vertexUV(1.0f, i * C_ONE_PIXEL, 0.0f,         texU_1, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
-		t.vertexUV(0.0f, i * C_ONE_PIXEL, 0.0f,         texU_2, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
-		t.vertexUV(0.0f, i * C_ONE_PIXEL, -C_ONE_PIXEL, texU_2, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
-		t.vertexUV(1.0f, i * C_ONE_PIXEL, -C_ONE_PIXEL, texU_1, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
-	}
-
-	t.draw();
+        
+    }
+    else
+    {
+        std::string toBind;
+        if (pTile)
+            toBind = C_TERRAIN_NAME;
+        else
+            toBind = C_ITEMS_NAME;
+        m_pMinecraft->m_pTextures->loadAndBindTexture(toBind);
+        
+        constexpr float C_RATIO     = 1.0f / 256.0f;
+        constexpr float C_RATIO_2   = 1.0f / 512.0f;
+        constexpr float C_ONE_PIXEL = 1.0f / 16.0f;
+        
+        int textureX = inst->getIcon() % 16 * 16;
+        int textureY = inst->getIcon() / 16 * 16;
+        
+        float texU_1 = C_RATIO * float(textureX + 0.0f);
+        float texU_2 = C_RATIO * float(textureX + 15.99f);
+        float texV_1 = C_RATIO * float(textureY + 0.0f);
+        float texV_2 = C_RATIO * float(textureY + 15.99f);
+        
+        Tesselator& t = Tesselator::instance;
+        glTranslatef(-0.0f, -0.3f, 0.0f);
+        glScalef(1.5f, 1.5f, 1.5f);
+        glRotatef(50.0f, 0.0f, 1.0f, 0.0f);
+        glRotatef(335.0f, 0.0f, 0.0f, 1.0f);
+        glTranslatef(-0.9375f, -0.0625f, 0.0f);
+        
+        t.begin();
+        SHADE_IF_NEEDED(1.0f);
+        
+        t.normal(0.0f, 0.0f, 1.0f);
+        t.vertexUV(0.0f, 0.0f, 0.0f,         texU_2, texV_2);
+        t.vertexUV(1.0f, 0.0f, 0.0f,         texU_1, texV_2);
+        t.vertexUV(1.0f, 1.0f, 0.0f,         texU_1, texV_1);
+        t.vertexUV(0.0f, 1.0f, 0.0f,         texU_2, texV_1);
+        
+        t.normal(0.0f, 0.0f, -1.0f);
+        t.vertexUV(0.0f, 1.0f, -C_ONE_PIXEL, texU_2, texV_1);
+        t.vertexUV(1.0f, 1.0f, -C_ONE_PIXEL, texU_1, texV_1);
+        t.vertexUV(1.0f, 0.0f, -C_ONE_PIXEL, texU_1, texV_2);
+        t.vertexUV(0.0f, 0.0f, -C_ONE_PIXEL, texU_2, texV_2);
+        
+        SHADE_IF_NEEDED(0.8f);
+        t.normal(-1.0f, 0.0f, 0.0f);
+        for (int i = 0; i < 16; i++)
+        {
+            t.vertexUV(i * C_ONE_PIXEL, 0.0f, -C_ONE_PIXEL, Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_2);
+            t.vertexUV(i * C_ONE_PIXEL, 0.0f, 0.0f,         Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_2);
+            t.vertexUV(i * C_ONE_PIXEL, 1.0f, 0.0f,         Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_1);
+            t.vertexUV(i * C_ONE_PIXEL, 1.0f, -C_ONE_PIXEL, Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_1);
+        }
+        for (int i = 0; i < 16; i++)
+        {
+            t.vertexUV((i + 1) * C_ONE_PIXEL, 1.0f, -C_ONE_PIXEL, Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_1);
+            t.vertexUV((i + 1) * C_ONE_PIXEL, 1.0f, 0.0f,         Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_1);
+            t.vertexUV((i + 1) * C_ONE_PIXEL, 0.0f, 0.0f,         Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_2);
+            t.vertexUV((i + 1) * C_ONE_PIXEL, 0.0f, -C_ONE_PIXEL, Mth::Lerp(texU_2, texU_1, i * C_ONE_PIXEL) - C_RATIO_2, texV_2);
+        }
+        
+        SHADE_IF_NEEDED(0.6f);
+        for (int i = 0; i < 16; i++)
+        {
+            t.vertexUV(0.0f, (i + 1) * C_ONE_PIXEL, 0.0f,         texU_2, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
+            t.vertexUV(1.0f, (i + 1) * C_ONE_PIXEL, 0.0f,         texU_1, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
+            t.vertexUV(1.0f, (i + 1) * C_ONE_PIXEL, -C_ONE_PIXEL, texU_1, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
+            t.vertexUV(0.0f, (i + 1) * C_ONE_PIXEL, -C_ONE_PIXEL, texU_2, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
+        }
+        for (int i = 0; i < 16; i++)
+        {
+            t.vertexUV(1.0f, i * C_ONE_PIXEL, 0.0f,         texU_1, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
+            t.vertexUV(0.0f, i * C_ONE_PIXEL, 0.0f,         texU_2, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
+            t.vertexUV(0.0f, i * C_ONE_PIXEL, -C_ONE_PIXEL, texU_2, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
+            t.vertexUV(1.0f, i * C_ONE_PIXEL, -C_ONE_PIXEL, texU_1, Mth::Lerp(texV_2, texV_1, i * C_ONE_PIXEL));
+        }
+        
+        t.draw();
+    }
+    
 	glPopMatrix();
 }
 
@@ -169,9 +171,9 @@ void ItemInHandRenderer::render(float f)
 
 	float h = m_oHeight + (m_height - m_oHeight) * f;
 	glPushMatrix();
-	glRotatef(pLP->m_rotPrev.y + (pLP->m_rot.y - pLP->m_rotPrev.y) * f, 1.0f, 0.0f, 0.0f);
-	glRotatef(pLP->m_rotPrev.x + (pLP->m_rot.x - pLP->m_rotPrev.x) * f, 0.0f, 1.0f, 0.0f);
-	Lighting::turnOn();
+	glRotatef(pLP->m_oRot.y + (pLP->m_rot.y - pLP->m_oRot.y) * f, 1.0f, 0.0f, 0.0f);
+	glRotatef(pLP->m_oRot.x + (pLP->m_rot.x - pLP->m_oRot.x) * f, 0.0f, 1.0f, 0.0f);
+    Lighting::turnOn(); // must be called before glPopMatrix()
 	glPopMatrix();
 
 	if (m_pMinecraft->getOptions()->m_bDynamicHand && m_pMinecraft->m_pMobPersp == pLP)
@@ -189,66 +191,58 @@ void ItemInHandRenderer::render(float f)
 	/*if (pLP->m_fishing != null) {
 		pItem = new ItemInstance(Item::stick);
 	}*/
-
-
-	if (pItem->m_itemID <= 0)
+    
+    glPushMatrix();
+    
+    float swing2, swing3;
+    float fAnim = pLP->getAttackAnim(f);
+    constexpr float d = 0.8f;
+    
+	if (!ItemInstance::isNull(pItem))
 	{
-		glPushMatrix();
-		float fAnim = pLP->getAttackAnim(f);
+        glTranslatef(-0.4f * Mth::sin(float(M_PI) * Mth::sqrt(fAnim)), 0.2f * Mth::sin(2.0f * float(M_PI) * Mth::sqrt(fAnim)), -0.2f * Mth::sin(float(M_PI) * fAnim));
+        glTranslatef(0.7f * d, -0.65f * d - (1.0f - h) * 0.6f, -0.9f * d);
+        glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
+        glEnable(GL_RESCALE_NORMAL);
 
-		glTranslatef(-0.3f * Mth::sin(float(M_PI) * Mth::sqrt(fAnim)), 0.4f * Mth::sin(2.0f * float(M_PI) * Mth::sqrt(fAnim)), -0.4f * Mth::sin(float(M_PI) * fAnim));
-		glTranslatef(0.64f, ((1.0f - h) * -0.6f) - 0.6f, -0.72f);
-		glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
-		glEnable(GL_RESCALE_NORMAL);
+        swing3 = Mth::sin(float(M_PI) * fAnim * fAnim);
+        swing2 = Mth::sin(float(M_PI) * Mth::sqrt(fAnim));
 
-		// @HUH: refetch
-		fAnim = pLP->getAttackAnim(f);
+        glRotatef(swing3 * -20.0f, 0.0f, 1.0f, 0.0f);
+        glRotatef(swing2 * -20.0f, 0.0f, 0.0f, 1.0f);
+        glRotatef(swing2 * -80.0f, 1.0f, 0.0f, 0.0f);
+        glScalef(0.4f, 0.4f, 0.4f);
 
-		glRotatef(Mth::sin(float(M_PI) * Mth::sqrt(fAnim)) * 70.0f, 0.0f, 1.0f, 0.0f);
-		glRotatef(Mth::sin(float(M_PI) * fAnim * fAnim) * -20.0f, 0.0f, 0.0f, 1.0f);
+        if (pItem->getItem()->isMirroredArt())
+            glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
 
-		m_pMinecraft->m_pTextures->loadAndBindTexture("mob/char.png");
-		glTranslatef(-1.0f, 3.6f, 3.5f);
-		glRotatef(120.0f, 0.0f, 0.0f, 1.0f);
-		glRotatef(200.0f, 1.0f, 0.0f, 0.0f);
-		glRotatef(-135.0f, 0.0f, 1.0f, 0.0f);
-		glScalef(1.0f, 1.0f, 1.0f);
-		glTranslatef(5.6f, 0.0f, 0.0f);
-
-		HumanoidMobRenderer* pRenderer = (HumanoidMobRenderer*)EntityRenderDispatcher::getInstance()->getRenderer(pLP);
-		glScalef(1.0f, 1.0f, 1.0f);
-		pRenderer->renderHand();
-
-		glPopMatrix();
+        renderItem(pItem);
 	}
 	else
 	{
-		glPushMatrix();
-		float fAnim = pLP->getAttackAnim(f);
+        glTranslatef(-0.3f * Mth::sin(float(M_PI) * Mth::sqrt(fAnim)), 0.4f * Mth::sin(2.0f * float(M_PI) * Mth::sqrt(fAnim)), -0.4f * Mth::sin(float(M_PI) * fAnim));
+        glTranslatef(0.8f * d, -0.75f * d - (1.0f - h) * 0.6f, -0.9f * d);
+        glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
+        glEnable(GL_RESCALE_NORMAL);
 
-		glTranslatef(-0.4f * Mth::sin(float(M_PI) * Mth::sqrt(fAnim)), 0.2f * Mth::sin(2.0f * float(M_PI) * Mth::sqrt(fAnim)), -0.2f * Mth::sin(float(M_PI) * fAnim));
-		glTranslatef(0.56f, ((1.0f - h) * -0.6f) - 0.52f, -0.72f);
-		glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
-		glEnable(GL_RESCALE_NORMAL);
+        glRotatef(Mth::sin(float(M_PI) * Mth::sqrt(fAnim)) * 70.0f, 0.0f, 1.0f, 0.0f);
+        glRotatef(Mth::sin(float(M_PI) * fAnim * fAnim) * -20.0f, 0.0f, 0.0f, 1.0f);
 
-		// @HUH: refetch
-		fAnim = pLP->getAttackAnim(f);
+        m_pMinecraft->m_pTextures->loadAndBindTexture("mob/char.png");
+        glTranslatef(-1.0f, 3.6f, 3.5f);
+        glRotatef(120.0f, 0.0f, 0.0f, 1.0f);
+        glRotatef(200.0f, 1.0f, 0.0f, 0.0f);
+        glRotatef(-135.0f, 0.0f, 1.0f, 0.0f);
+        glScalef(1.0f, 1.0f, 1.0f);
+        glTranslatef(5.6f, 0.0f, 0.0f);
 
-		float sin1 = Mth::sin(float(M_PI) * Mth::sqrt(fAnim));
-		float sin2 = Mth::sin(float(M_PI) * fAnim * fAnim);
-
-		glRotatef(sin2 * -20.0f, 0.0f, 1.0f, 0.0f);
-		glRotatef(sin1 * -20.0f, 0.0f, 0.0f, 1.0f);
-		glRotatef(sin1 * -80.0f, 1.0f, 0.0f, 0.0f);
-		glScalef(0.4f, 0.4f, 0.4f);
-
-		if (pItem->getItem()->isMirroredArt())
-			glRotatef(180.0f, 0.0f, 1.0f, 0.0f);
-
-		renderItem(pItem);
-		glPopMatrix();
+        HumanoidMobRenderer* pRenderer = (HumanoidMobRenderer*)EntityRenderDispatcher::getInstance()->getRenderer(pLP);
+        swing2 = 1.0f;
+        glScalef(swing2, swing2, swing2);
+        pRenderer->renderHand();
 	}
 
+    glPopMatrix();
 	glDisable(GL_RESCALE_NORMAL);
 	Lighting::turnOff();
 }
@@ -321,9 +315,22 @@ void ItemInHandRenderer::tick()
 {
 	m_oHeight = m_height;
 
-	int itemID = m_pMinecraft->m_pLocalPlayer->m_pInventory->getSelectedItemId();
+	ItemInstance* item = m_pMinecraft->m_pLocalPlayer->m_pInventory->getSelectedItem();
 
-	bool bSameItem = itemID == m_selectedItem.m_itemID;
+	bool bSameItem = m_pMinecraft->m_pLocalPlayer->m_pInventory->m_selectedHotbarSlot == m_lastSlot && ItemInstance::matches(&m_selectedItem, item);
+
+	if (ItemInstance::isNull(item) && ItemInstance::isNull(&m_selectedItem))
+		bSameItem = true;
+
+	// without this, the player hand remains hidden
+	if (!ItemInstance::isNull(item) && !ItemInstance::isNull(&m_selectedItem))
+	{
+        if (item != &m_selectedItem && *item == m_selectedItem)
+        {
+            bSameItem = true;
+            m_selectedItem = *item;
+        }
+	}
 
 	float b = bSameItem ? 1.0f : 0.0f;
 
@@ -331,12 +338,19 @@ void ItemInHandRenderer::tick()
 	if (a < -0.4f)
 		a = -0.4f;
 	if (a >= 0.4f)
-		a  = 0.4f;
+		a = 0.4f;
 
 	m_height += a;
 
 	if (m_height < 0.1f)
-		m_selectedItem.m_itemID = itemID;
+	{
+		if (ItemInstance::isNull(item))
+			m_selectedItem.setNull();
+		else
+			m_selectedItem = *item;
+
+		m_lastSlot = m_pMinecraft->m_pLocalPlayer->m_pInventory->m_selectedHotbarSlot;
+	}
 }
 
 void ItemInHandRenderer::turn(const Vec2& rot)

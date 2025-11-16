@@ -9,11 +9,16 @@
 #pragma once
 
 #include <string>
+#include <stdint.h>
+
+// needed for TileData and Tile IDs
 #include "common/Utils.hpp"
+
 #include "world/level/Material.hpp"
-#include "ItemInstance.hpp"
 #include "world/level/TilePos.hpp"
 #include "world/Facing.hpp"
+
+#include "ItemInstance.hpp"
 
 #define C_MAX_ITEMS (C_MAX_TILES * 2)
 
@@ -24,6 +29,7 @@ class Entity;
 class Mob;
 class Player;
 class Tile;
+class CompoundTag;
 
 class Item
 {
@@ -47,7 +53,7 @@ public: // Sub structures
 	};
 
 public: // Methods
-	Item(int ID);
+	Item(int ID = TILE_AIR);
 
 	//@NOTE: The setters are virtual for whatever reason
 
@@ -55,31 +61,33 @@ public: // Methods
 	virtual Item* setMaxStackSize(int mss);
 	virtual Item* setIcon(int ix, int iy);
 	virtual int getIcon(const ItemInstance*) const;
-	virtual bool useOn(ItemInstance*, Level*, const TilePos& pos, Facing::Name face);
-	virtual bool useOn(ItemInstance*, Player*, Level*, const TilePos& pos, Facing::Name face);
-	virtual float getDestroySpeed(ItemInstance*, Tile*);
-	virtual ItemInstance* use(ItemInstance*, Level*, Player*);
-	virtual int getMaxStackSize();
-	virtual int getLevelDataForAuxValue(int x);
-	virtual bool isStackedByData();
-	virtual int getMaxDamage();
-	virtual void hurtEnemy(ItemInstance*, Mob*);
-	virtual void mineBlock(ItemInstance*, const TilePos& pos, Facing::Name face);
-	virtual int getAttackDamage(Entity*);
-	virtual bool canDestroySpecial(Tile*);
-	virtual void interactEnemy(ItemInstance*, Mob*);
+	virtual bool useOn(ItemInstance*, Level*, const TilePos& pos, Facing::Name face) const;
+	virtual bool useOn(ItemInstance*, Player*, Level*, const TilePos& pos, Facing::Name face) const;
+	virtual float getDestroySpeed(ItemInstance*, Tile*) const;
+	virtual ItemInstance* use(ItemInstance*, Level*, Player*) const;
+	virtual int getMaxStackSize() const;
+	virtual TileData getLevelDataForAuxValue(int x) const;
+	virtual bool isStackedByData() const;
+	virtual int getMaxDamage() const;
+	virtual void hurtEnemy(ItemInstance*, Mob*) const;
+	virtual void mineBlock(ItemInstance*, const TilePos& pos, Facing::Name face) const;
+	virtual int getAttackDamage(Entity*) const;
+	virtual bool canDestroySpecial(Tile*) const;
+	virtual void interactEnemy(ItemInstance*, Mob*) const;
 	virtual Item* handEquipped();
-	virtual bool isHandEquipped();
-	virtual bool isMirroredArt();
+	virtual bool isHandEquipped() const;
+	virtual bool isMirroredArt() const;
 	virtual Item* setDescriptionId(const std::string& desc);
-	virtual std::string getDescription();
-	virtual std::string getDescription(ItemInstance*);
-	virtual std::string getDescriptionId();
-	virtual std::string getDescriptionId(ItemInstance*);
+	virtual std::string getDescription() const;
+	virtual std::string getDescription(ItemInstance*) const;
+	virtual std::string getDescriptionId() const;
+	virtual std::string getDescriptionId(ItemInstance*) const;
 	virtual Item* setCraftingRemainingItem(Item*);
-	virtual Item* getCraftingRemainingItem();
-	virtual bool hasCraftingRemainingItem();
-	virtual std::string getName();
+	virtual Item* getCraftingRemainingItem() const;
+	virtual bool hasCraftingRemainingItem() const;
+	virtual std::string getName() const;
+	virtual std::string getHovertextName() const;
+	virtual int buildIdAux(int16_t auxValue, const CompoundTag* userData = nullptr) const;
 
 	static void initItems();
 	
@@ -198,8 +206,10 @@ public: // Static declarations
 		*cake,
 		*bed,
 		*diode,
+		*cookie,
 		*record_01,
 		*record_02,
 		*camera,
-		*rocket;
+		*rocket,
+		*quiver;
 };

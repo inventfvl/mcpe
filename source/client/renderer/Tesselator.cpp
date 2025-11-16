@@ -8,7 +8,8 @@
 
 #include "Tesselator.hpp"
 #include "thirdparty/GL/GL.hpp"
-#include "common/Utils.hpp"
+#include "common/Logger.hpp"
+#include "compat/EndianDefinitions.h"
 
 #include <cstddef>
 
@@ -109,7 +110,11 @@ void Tesselator::color(int r, int g, int b, int a)
 	if (a < 0) a = 0;
 
 	m_bHasColor = true;
-	m_nextVtxColor = a << 24 | b << 16 | g << 8 | r;
+#if MC_ENDIANNESS_BIG
+	m_nextVtxColor = a | (b << 8) | (g << 16) | (r << 24);
+#else // MC_ENDIANNESS_LITTLE
+	m_nextVtxColor = (a << 24) | (b << 16) | (g << 8) | r;
+#endif
 }
 
 void Tesselator::color(int r, int g, int b)
@@ -284,10 +289,14 @@ void Tesselator::normal(float x, float y, float z)
 		LOG_W("But...");*/
 
 	m_bHasNormal = true;
-	unsigned int bx = static_cast<unsigned char>(x * 128.0f);
-	unsigned int by = static_cast<unsigned char>(y * 127.0f);
-	unsigned int bz = static_cast<unsigned char>(z * 127.0f);
+	int8_t bx = static_cast<int8_t>(x * 128);
+	int8_t by = static_cast<int8_t>(y * 127);
+	int8_t bz = static_cast<int8_t>(z * 127);
+#if MC_ENDIANNESS_BIG
+	m_nextVtxNormal = (bx << 24) | (by << 16) | (bz << 8);
+#else // MC_ENDIANNESS_LITTLE
 	m_nextVtxNormal = (bx << 0) | (by << 8) | (bz << 16);
+#endif
 #endif
 }
 
@@ -340,6 +349,15 @@ void Tesselator::vertex(float x, float y, float z)
 			{
 				pVert2->m_color = pVert1->m_color;
 			}
+            
+            // Wasn't here in Java cuz I guess it's not needed?
+			// TBR: This is needed with Emscripten's OpenGL implementation.
+#ifdef USE_GL_NORMAL_LIGHTING
+            if (m_bHasNormal)
+            {
+                pVert2->m_normal = pVert1->m_normal;
+            }
+#endif
 
 			pVert2->m_x = pVert1->m_x;
 			pVert2->m_y = pVert1->m_y;

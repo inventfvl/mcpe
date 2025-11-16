@@ -8,8 +8,10 @@
 
 #include "FallingTile.hpp"
 #include "world/level/Level.hpp"
+#include "nbt/CompoundTag.hpp"
 
 FallingTile::FallingTile(Level* level) : Entity(level),
+	m_id(TILE_AIR), // Uninitialized by Mojang
 	field_E0(0)
 {
 }
@@ -18,7 +20,7 @@ FallingTile::FallingTile(Level* level, const Vec3& pos, int id) : Entity(level),
 	field_E0(0)
 {
 	m_id = id;
-	field_34 = 1;
+    m_bBlocksBuilding = false;
 	setSize(0.98f, 0.98f);
 	m_heightOffset = m_bbHeight * 0.5f;
 	setPos(pos);
@@ -61,9 +63,9 @@ void FallingTile::tick()
 	if (m_pLevel->getTile(tilePos) == m_id)
 		m_pLevel->setTile(tilePos, TILE_AIR);
 
-	if (!m_onGround)
+	if (!m_bOnGround)
 	{
-		if (field_E0 > 100 && !m_pLevel->m_bIsMultiplayer)
+		if (field_E0 > 100 && !m_pLevel->m_bIsClientSide)
 			remove();
 
 		return;
@@ -83,7 +85,12 @@ void FallingTile::tick()
 	}
 }
 
-Level* FallingTile::getLevel()
+void FallingTile::addAdditionalSaveData(CompoundTag& tag) const
 {
-	return m_pLevel;
+	tag.putInt8("Tile", m_id);
+}
+
+void FallingTile::readAdditionalSaveData(const CompoundTag& tag)
+{
+	m_id = tag.getInt8("Tile");
 }

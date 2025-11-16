@@ -3,15 +3,16 @@ project(reminecraftpe-core)
 
 # Build
 add_library(reminecraftpe-core STATIC
-    common/Random.cpp
-    common/Utils.cpp
+    common/CThread.cpp
+    common/DataIO.cpp
+    common/Logger.cpp
     common/Matrix.cpp
     common/Mth.cpp
-    common/Timer.cpp
-    common/CThread.cpp
-    common/Util.cpp
-    common/Logger.cpp
+    common/Random.cpp
     common/SmoothFloat.cpp
+    common/Timer.cpp
+    common/Util.cpp
+    common/Utils.cpp
     client/app/App.cpp
     client/app/AppPlatform.cpp
     client/app/Minecraft.cpp
@@ -29,14 +30,12 @@ add_library(reminecraftpe-core STATIC
     client/renderer/entity/EntityRenderDispatcher.cpp
     client/renderer/entity/HumanoidMobRenderer.cpp
     client/renderer/entity/SpiderRenderer.cpp
-    client/renderer/entity/ZombieRenderer.cpp
-    client/renderer/entity/SkeletonRenderer.cpp
+    client/renderer/entity/ArrowRenderer.cpp
     client/renderer/entity/SheepRenderer.cpp
     client/renderer/entity/SheepFurRenderer.cpp
     client/renderer/entity/CreeperRenderer.cpp
     client/renderer/entity/CowRenderer.cpp
     client/renderer/entity/PigRenderer.cpp
-    client/renderer/entity/SheepRenderer.cpp
     client/renderer/entity/ChickenRenderer.cpp
     client/renderer/entity/RocketRenderer.cpp
     client/renderer/RenderList.cpp
@@ -63,12 +62,15 @@ add_library(reminecraftpe-core STATIC
     client/renderer/FoliageColor.cpp
     client/renderer/GrassColor.cpp
     client/sound/SoundData.cpp
+    client/sound/SoundPathRepository.cpp
+    client/sound/SoundStream.cpp
     client/sound/SoundSystem.cpp
     client/sound/SoundRepository.cpp
     client/sound/SoundEngine.cpp
     client/gui/Screen.cpp
     client/gui/screens/OptionsScreen.cpp
     client/gui/screens/StartMenuScreen.cpp
+    client/gui/screens/ConvertWorldScreen.cpp
     client/gui/screens/CreateWorldScreen.cpp
     client/gui/screens/DirectConnectScreen.cpp
     client/gui/screens/DisconnectionScreen.cpp
@@ -111,6 +113,8 @@ add_library(reminecraftpe-core STATIC
     client/model/CreeperModel.cpp
     client/model/CowModel.cpp
     client/model/ChickenModel.cpp
+	client/multiplayer/MultiPlayerLevel.cpp
+	client/multiplayer/MultiplayerLocalPlayer.cpp
     client/player/input/Controller.cpp
     client/player/input/ControllerBuildInput.cpp
     client/player/input/ControllerMoveInput.cpp
@@ -136,10 +140,30 @@ add_library(reminecraftpe-core STATIC
     client/player/input/TouchInputHolder.cpp
     client/player/input/TouchscreenInput_TestFps.cpp
     client/player/input/UnifiedTurnBuild.cpp
+    client/player/LocalPlayer.cpp
     client/network/ClientSideNetworkHandler.cpp
+    nbt/CompoundTag.cpp
+    nbt/DoubleTag.cpp
+    nbt/EndTag.cpp
+    nbt/FloatTag.cpp
+    nbt/Int8ArrayTag.cpp
+    nbt/Int8Tag.cpp
+    nbt/Int16Tag.cpp
+    nbt/Int32ArrayTag.cpp
+    nbt/Int32Tag.cpp
+    nbt/Int64ArrayTag.cpp
+    nbt/Int64Tag.cpp
+    nbt/ListTag.cpp
+    nbt/NbtIo.cpp
+    nbt/StringTag.cpp
+    nbt/Tag.cpp
     network/packets/UpdateBlockPacket.cpp
     network/packets/RequestChunkPacket.cpp
     network/packets/PlayerEquipmentPacket.cpp
+    network/packets/InteractPacket.cpp
+	network/packets/UseItemPacket.cpp
+    network/packets/SetEntityDataPacket.cpp
+    network/packets/SetHealthPacket.cpp
     network/packets/ChunkDataPacket.cpp
     network/packets/LevelDataPacket.cpp
     network/packets/PlaceBlockPacket.cpp
@@ -149,15 +173,26 @@ add_library(reminecraftpe-core STATIC
     network/packets/SetTimePacket.cpp
     network/packets/StartGamePacket.cpp
     network/packets/RemoveEntityPacket.cpp
+    network/packets/AddItemEntityPacket.cpp
+    network/packets/TakeItemEntityPacket.cpp
     network/packets/AddPlayerPacket.cpp
+    network/packets/AddMobPacket.cpp
     network/packets/RemoveBlockPacket.cpp
     network/packets/MovePlayerPacket.cpp
+    network/packets/MoveEntityPacket.cpp
+    network/packets/MoveEntityPacket_PosRot.cpp
+    network/packets/LevelEventPacket.cpp
+    network/packets/EntityEventPacket.cpp
     network/packets/MessagePacket.cpp
-    network/ServerSideNetworkHandler.cpp
+    network/packets/AnimatePacket.cpp
+    network/packets/RespawnPacket.cpp
+    network/RakIO.cpp
     network/RakNetInstance.cpp
     network/MinecraftPackets.cpp
     network/NetEventCallback.cpp
     network/PacketUtil.cpp
+    server/ServerPlayer.cpp
+    server/ServerSideNetworkHandler.cpp
     world/level/levelgen/synth/Synth.cpp
     world/level/levelgen/synth/ImprovedNoise.cpp
     world/level/levelgen/synth/PerlinNoise.cpp
@@ -173,7 +208,6 @@ add_library(reminecraftpe-core STATIC
     world/gamemode/GameMode.cpp
     world/gamemode/CreativeMode.cpp
     world/entity/Mob.cpp
-    world/entity/LocalPlayer.cpp
     world/entity/Player.cpp
     world/entity/PrimedTnt.cpp
     world/entity/Entity.cpp
@@ -182,20 +216,25 @@ add_library(reminecraftpe-core STATIC
     world/entity/ItemEntity.cpp
     world/entity/PathfinderMob.cpp
     world/entity/Animal.cpp
+    world/entity/Skeleton.cpp
+    world/entity/Spider.cpp
+    world/entity/Zombie.cpp
+    world/entity/Arrow.cpp
     world/entity/WaterAnimal.cpp
     world/entity/Monster.cpp
     world/entity/Rocket.cpp
+    world/entity/EntityFactory.cpp
     world/entity/MobFactory.cpp
-	world/entity/Chicken.cpp
-	world/entity/Cow.cpp
-	world/entity/Creeper.cpp
-	world/entity/Pig.cpp
-	world/entity/Sheep.cpp
-	world/entity/SynchedEntityData.cpp
-	world/entity/EntityCategories.cpp
-	world/entity/EntityType.cpp
-	world/entity/EntityTypeDescriptor.cpp
-	world/entity/MobCategory.cpp
+    world/entity/Chicken.cpp
+    world/entity/Cow.cpp
+    world/entity/Creeper.cpp
+    world/entity/Pig.cpp
+    world/entity/Sheep.cpp
+    world/entity/SynchedEntityData.cpp
+    world/entity/EntityCategories.cpp
+    world/entity/EntityType.cpp
+    world/entity/EntityTypeDescriptor.cpp
+    world/entity/MobCategory.cpp
     world/level/Dimension.cpp
     world/level/Material.cpp
     world/level/LevelListener.cpp
@@ -229,6 +268,9 @@ add_library(reminecraftpe-core STATIC
     world/level/levelgen/feature/ClayFeature.cpp
     world/level/levelgen/feature/FlowerFeature.cpp
     world/level/levelgen/feature/SpruceFeature.cpp
+    world/level/levelgen/feature/PumpkinFeature.cpp
+    world/level/levelgen/feature/CactusFeature.cpp
+    world/level/levelgen/feature/VegetationFeature.cpp
     world/level/levelgen/biome/Biome.cpp
     world/level/levelgen/biome/BiomeSource.cpp
     world/level/levelgen/chunk/RandomLevelSource.cpp
@@ -236,6 +278,7 @@ add_library(reminecraftpe-core STATIC
     world/level/levelgen/chunk/ChunkCache.cpp
     world/level/levelgen/chunk/ChunkPos.cpp
     world/level/levelgen/chunk/ChunkSource.cpp
+	world/level/levelgen/chunk/DataLayer.cpp
     world/level/levelgen/chunk/EmptyLevelChunk.cpp
     world/level/levelgen/chunk/PerformanceTestChunkSource.cpp
     world/level/levelgen/chunk/TestChunkSource.cpp
@@ -249,6 +292,9 @@ add_library(reminecraftpe-core STATIC
     world/item/ItemInstance.cpp
     world/item/RocketItem.cpp
     world/item/Item.cpp
+    world/item/AuxTileItem.cpp
+    world/item/ClothItem.cpp
+    world/item/SlabItem.cpp
     world/particle/RedDustParticle.cpp
     world/particle/TerrainParticle.cpp
     world/particle/BubbleParticle.cpp
@@ -297,6 +343,14 @@ add_library(reminecraftpe-core STATIC
     world/tile/FarmTile.cpp
     world/tile/DoorTile.cpp
     world/tile/RocketLauncherTile.cpp
+    world/tile/CactusTile.cpp
+    world/tile/TallGrass.cpp
+    world/tile/DeadBush.cpp
+    world/tile/PumpkinTile.cpp
+    world/tile/SoulSandTile.cpp
+    world/tile/GlowstoneTile.cpp
+    world/tile/Web.cpp
+    world/tile/FenceTile.cpp
     renderer/GL/GL.cpp
 )
 target_include_directories(reminecraftpe-core PUBLIC . ..)
@@ -306,74 +360,26 @@ add_subdirectory(../thirdparty/raknet raknet)
 target_link_libraries(reminecraftpe-core PUBLIC raknet)
 
 # zlib
-add_library(zlib INTERFACE)
-if(EMSCRIPTEN)
+add_library(zlib-interface INTERFACE)
+if(MCPE_WIN32)
+    # Compile Vendored ZLib
+    add_subdirectory(../thirdparty/zlib zlib)
+    target_link_libraries(zlib-interface INTERFACE zlib)
+elseif(EMSCRIPTEN)
     # Use Emscripten's ZLib
     set(ZLIB_FLAG -sUSE_ZLIB=1)
-    target_compile_options(zlib INTERFACE "${ZLIB_FLAG}")
-    target_link_options(zlib INTERFACE "${ZLIB_FLAG}")
+    target_compile_options(zlib-interface INTERFACE "${ZLIB_FLAG}")
+    target_link_options(zlib-interface INTERFACE "${ZLIB_FLAG}")
 else()
     # Use System ZLib
     find_package(ZLIB REQUIRED)
-    target_link_libraries(zlib INTERFACE ZLIB::ZLIB)
+    target_link_libraries(zlib-interface INTERFACE ZLIB::ZLIB)
 endif()
-target_link_libraries(reminecraftpe-core PUBLIC zlib)
-
-# Platform Dependencies
-if(USE_SDL)
-    # SDL
-    add_library(SDL INTERFACE)
-    if(ANDROID)
-        # Use Vendored SDL2 (Only For Android)
-        add_subdirectory(../thirdparty/SDL2/src SDL EXCLUDE_FROM_ALL)
-        target_link_libraries(SDL INTERFACE SDL2::SDL2)
-    elseif(EMSCRIPTEN)
-        # Use Emscripten's SDL2
-        set(SDL_FLAG -sUSE_SDL=2)
-        target_compile_options(SDL INTERFACE "${SDL_FLAG}")
-        target_link_options(SDL INTERFACE "${SDL_FLAG}")
-    else()
-        # Use System SDL2
-        find_package(SDL2 REQUIRED)
-        target_link_libraries(SDL INTERFACE SDL2::SDL2)
-    endif()
-    target_link_libraries(reminecraftpe-core PUBLIC SDL)
-
-    # OpenGL
-    if(NOT EMSCRIPTEN AND NOT ANDROID)
-        option(USE_GLES1_COMPATIBILITY_LAYER "Whether To Enable The GLESv1_CM Compatibility Layer" TRUE)
-    else()
-        set(USE_GLES1_COMPATIBILITY_LAYER TRUE CACHE BOOL "" FORCE)
-    endif()
-    if(USE_GLES1_COMPATIBILITY_LAYER)
-        set(GLES_COMPATIBILITY_LAYER_USE_SDL TRUE CACHE BOOL "" FORCE)
-        set(GLES_COMPATIBILITY_LAYER_DEPENDENCY SDL CACHE STRING "" FORCE)
-        set(GLES_COMPATIBILITY_LAYER_USE_ES3 FALSE CACHE BOOL "" FORCE)
-        add_subdirectory(../thirdparty/gles-compatibility-layer gles-compatibility-layer)
-        target_link_libraries(reminecraftpe-core PUBLIC gles-compatibility-layer)
-        target_compile_definitions(reminecraftpe-core PUBLIC USE_GLES1_COMPATIBILITY_LAYER)
-        if(EMSCRIPTEN)
-            # Use WebGL 2
-            target_link_options(reminecraftpe-core PUBLIC -sMIN_WEBGL_VERSION=2 -sMAX_WEBGL_VERSION=2)
-        endif()
-    else()
-        find_package(OpenGL REQUIRED)
-        target_link_libraries(reminecraftpe-core PUBLIC OpenGL::GL)
-    endif()
-elseif(USE_NATIVE_ANDROID)
-    # OpenGL
-    target_link_libraries(reminecraftpe-core PUBLIC EGL GLESv1_CM)
+target_link_libraries(reminecraftpe-core PUBLIC zlib-interface)
+# OpenGL Support Code
+if(MCPE_WIN32)
+    target_sources(reminecraftpe-core PRIVATE ../thirdparty/GL/GLExt.cpp)
 endif()
 
-# Android Logging
-if(ANDROID)
-    target_link_libraries(reminecraftpe-core PUBLIC log)
-endif()
-
-# Sound Data
-if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../sound_data/sounds.h")
-    if(NOT DEFINED ENV{CI})
-        message(WARNING "Missing sound data! Did you run tools/grabsounds.py?")
-    endif()
-    target_compile_definitions(reminecraftpe-core PRIVATE MISSING_SOUND_DATA)
-endif()
+# OGG Support
+target_link_libraries(reminecraftpe-core PUBLIC stb_vorbis)

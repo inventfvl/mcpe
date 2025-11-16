@@ -6,7 +6,6 @@
 	SPDX-License-Identifier: BSD-1-Clause
  ********************************************************************/
 
-#include <stdarg.h>
 #include "Util.hpp"
 
 const std::string Util::EMPTY_STRING = "";

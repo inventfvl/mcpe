@@ -8,13 +8,15 @@
 
 #include "IngameBlockSelectionScreen.hpp"
 #include "PauseScreen.hpp"
+#include "ChatScreen.hpp"
 #include "client/app/Minecraft.hpp"
 #include "client/renderer/entity/ItemRenderer.hpp"
 
 std::string g_sNotAvailableInDemoVersion = "Not available in the demo version";
 
 IngameBlockSelectionScreen::IngameBlockSelectionScreen() :
-	m_btnPause(0, "Pause")
+	m_btnPause(0, "Pause"),
+	m_btnChat(1, "Chat") // Temp chat button
 {
 	m_selectedSlot = 0;
 }
@@ -74,18 +76,25 @@ void IngameBlockSelectionScreen::init()
 	m_btnPause.m_width = 40;
 	m_btnPause.m_xPos = 0;
 	m_btnPause.m_yPos = 0;
-#if TARGET_OS_IPHONE != 0
+#if MC_PLATFORM_IOS
 	if (m_pMinecraft->isTouchscreen())
 		m_buttons.push_back(&m_btnPause);
 #endif
 	
+	m_btnChat.m_width = 40;
+	m_btnChat.m_xPos = m_width - m_btnChat.m_width; // Right edge
+    m_btnChat.m_yPos = 0;
+	if (m_pMinecraft->isTouchscreen())
+		m_buttons.push_back(&m_btnChat);
+
 	Inventory* pInv = getInventory();
 
 	int nItems = pInv->getNumItems();
 
 	for (int i = 0; i < nItems; i++)
 	{
-		if (pInv->getItem(i)->m_itemID == pInv->getSelectedItemId())
+		ItemInstance* item = pInv->getItem(i);
+		if (item && item->getId() == pInv->getSelectedItemId())
 		{
 			m_selectedSlot = i;
 			break;
@@ -99,10 +108,7 @@ void IngameBlockSelectionScreen::init()
 void IngameBlockSelectionScreen::renderSlot(int index, int x, int y, float f)
 {
 	ItemInstance* pItem = getInventory()->getItem(index);
-	if (!pItem)
-		return;
-
-	if (!pItem->m_itemID)
+	if (ItemInstance::isNull(pItem))
 		return;
 
 	ItemRenderer::renderGuiItem(m_pMinecraft->m_pFont, m_pMinecraft->m_pTextures, pItem, x, y, true);
@@ -162,6 +168,9 @@ void IngameBlockSelectionScreen::buttonClicked(Button* pButton)
 {
 	if (pButton->m_buttonId == m_btnPause.m_buttonId)
 		m_pMinecraft->setScreen(new PauseScreen);
+
+	if (pButton->m_buttonId == m_btnChat.m_buttonId)
+        m_pMinecraft->setScreen(new ChatScreen(true));
 }
 
 void IngameBlockSelectionScreen::mouseClicked(int x, int y, int type)
@@ -201,6 +210,6 @@ void IngameBlockSelectionScreen::selectSlotAndClose()
 	
 	pInv->selectItem(m_selectedSlot, m_pMinecraft->m_gui.getNumUsableSlots());
 
-	m_pMinecraft->m_pSoundEngine->play("random.click");
+	m_pMinecraft->m_pSoundEngine->playUI("random.click");
 	m_pMinecraft->setScreen(nullptr);
 }

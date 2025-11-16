@@ -6,19 +6,20 @@
 	SPDX-License-Identifier: BSD-1-Clause
  ********************************************************************/
 
-#include "../Packet.hpp"
+#include "ChunkDataPacket.hpp"
+#include "network/NetEventCallback.hpp"
 #include "world/level/levelgen/chunk/LevelChunk.hpp"
 
-void ChunkDataPacket::handle(const RakNet::RakNetGUID& guid, NetEventCallback* pCallback)
+void ChunkDataPacket::handle(const RakNet::RakNetGUID& guid, NetEventCallback& callback)
 {
-	pCallback->handle(guid, this);
+	callback.handle(guid, this);
 }
 
-void ChunkDataPacket::write(RakNet::BitStream* bs)
+void ChunkDataPacket::write(RakNet::BitStream& bs)
 {
-	bs->Write((unsigned char)PACKET_CHUNK_DATA);
-	bs->Write(m_chunkPos.x);
-	bs->Write(m_chunkPos.z);
+	bs.Write((unsigned char)PACKET_CHUNK_DATA);
+	bs.Write(m_chunkPos.x);
+	bs.Write(m_chunkPos.z);
 	
 	// Well, we first have to prepare the data.
 	m_data.Reset();
@@ -38,20 +39,20 @@ void ChunkDataPacket::write(RakNet::BitStream* bs)
 				int idx = ((i & 0xF) << 11) | ((i >> 4) << 7) + (y * 16);
 				//write the tile data
 				
-				m_data.Write((const char*) &m_pChunk->m_pBlockData[idx],      16 * sizeof(TileID));
-				m_data.Write((const char*) &m_pChunk->m_tileData  [idx >> 1], 8);
+				m_data.Write((const char*) &m_pChunk->m_pBlockData[idx], 16 * sizeof(TileID));
+				m_data.Write((const char*) &m_pChunk->m_tileData.m_data[idx >> 1], 8);
 			}
 		}
 	}
 
 	m_data.ResetReadPointer();
-	bs->Write(m_data);
+	bs.Write(m_data);
 }
 
-void ChunkDataPacket::read(RakNet::BitStream* bs)
+void ChunkDataPacket::read(RakNet::BitStream& bs)
 {
-	bs->Read(m_chunkPos.x);
-	bs->Read(m_chunkPos.z);
-	bs->Read(m_data);
+	bs.Read(m_chunkPos.x);
+	bs.Read(m_chunkPos.z);
+	bs.Read(m_data);
 	m_data.ResetReadPointer();
 }

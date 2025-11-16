@@ -13,13 +13,13 @@
 class RocketLauncherTile : public Tile
 {
 public:
-	RocketLauncherTile(int id);
+	RocketLauncherTile(TileID id);
 
-	int getTexture(Facing::Name face, int data) const override;
+	int getTexture(Facing::Name face, TileData data) const override;
 	AABB* getAABB(const Level*, const TilePos& pos) override;
 	int getRenderShape() const override;
 	bool isCubeShaped() const override;
 	bool isSolidRender() const override;
-	int use(Level* pLevel, const TilePos& pos, Player* player) override;
+	bool use(Level* pLevel, const TilePos& pos, Player* player) override;
 	void tick(Level*, const TilePos& pos, Random*) override;
 };

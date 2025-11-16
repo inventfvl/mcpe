@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "compat/LegacyCPPCompatibility.hpp"
+#include "compat/LegacyCPP.hpp"
 
 class Player;
 
@@ -20,6 +20,8 @@ enum
 	INPUT_RIGHT,
 	INPUT_JUMP,
 	INPUT_SNEAK,
+	INPUT_FORWARDLEFT,
+	INPUT_FORWARDRIGHT,
 };
 
 class IMoveInput

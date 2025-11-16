@@ -14,27 +14,39 @@
 
 class Mob : public Entity
 {
+private:
+	void _init();
+
 public:
 	Mob(Level* pLevel);
 	virtual ~Mob();
 
-	//overrides
-	virtual void reset() override;
-	virtual void lerpTo(const Vec3& pos, const Vec2& rot, int steps) override;
-	virtual void tick() override;
-	virtual void baseTick() override;
-	virtual float getHeadHeight() const override { return 0.85f * m_bbHeight; }
-	virtual bool isPickable() const override { return !m_bRemoved; }
-	virtual bool isPushable() const override { return !m_bRemoved; }
-	virtual bool isShootable() const override { return true; }
-	virtual bool isAlive() const override;
-	virtual bool hurt(Entity*, int) override;
-	virtual void animateHurt() override;
-	virtual void setSize(float rad, float height) override;
-	virtual void outOfWorld() override;
-	virtual void causeFallDamage(float level) override;
+protected:
+	virtual void actuallyHurt(int damage);
 
-	//virtuals
+public:
+	// overrides
+	void reset() override;
+	void lerpTo(const Vec3& pos, const Vec2& rot, int steps) override;
+	void tick() override;
+	void baseTick() override;
+	float getHeadHeight() const override { return 0.85f * m_bbHeight; }
+	bool isPickable() const override { return !m_bRemoved; }
+	bool isPushable() const override { return !m_bRemoved; }
+	bool isShootable() const override { return true; }
+	bool isAlive() const override;
+	bool isMob() const override { return true; }
+	bool interpolateOnly() const override;
+	bool hurt(Entity*, int) override;
+	void animateHurt() override;
+	void setSize(float rad, float height) override;
+	void outOfWorld() override;
+	void causeFallDamage(float level) override;
+	void handleEntityEvent(EventType::ID eventId) override;
+	void addAdditionalSaveData(CompoundTag& tag) const override;
+	void readAdditionalSaveData(const CompoundTag& tag) override;
+
+	// virtuals
 	virtual void knockback(Entity* pEnt, int a, float x, float z);
 	virtual void die(Entity* pCulprit);
 	virtual bool canSee(Entity* pEnt) const;
@@ -50,20 +62,19 @@ public:
 	virtual void travel(const Vec2& pos);
 	virtual void updateWalkAnim();
 	virtual void aiStep();
-	//AddAdditonalSaveData TODO
-	//ReadAdditionalSaveData TODO
 	virtual void lookAt(Entity* pEnt, float, float);
 	virtual bool isLookingAtAnEntity() { return m_pEntLookedAt != nullptr; }
 	virtual Entity* getLookingAt() const { return m_pEntLookedAt; }
-	virtual void beforeRemove() { }
-	virtual bool canSpawn() const;
+	virtual void beforeRemove() {}
+	virtual bool canSpawn();
 	virtual float getAttackAnim(float f) const;
 	virtual Vec3 getPos(float f) const;
+	virtual Vec2 getRot(float f) const;
 	virtual Vec3 getLookAngle(float f) const { return getViewVector(1.0f); }
 	virtual Vec3 getViewVector(float f) const;
 	virtual int getMaxSpawnClusterSize() const { return 4; }
+	virtual ItemInstance* getCarriedItem() { return nullptr; }
 	virtual bool isBaby() const { return false; }
-	virtual void actuallyHurt(int damage);
 	virtual bool removeWhenFarAway() const { return true; }
 	virtual int getDeathLoot() const { return 0; }
 	virtual void dropDeathLoot();
@@ -83,32 +94,36 @@ public:
 
 	float rotlerp(float, float, float);
 	void updateAttackAnim();
+    
+private:
+     int m_ambientSoundTime;
+	 Vec3 m_lastSentPos;
+	 Vec2 m_lastSentRot;
 
 public:
-	int field_DC;
+	int m_invulnerableDuration;
 	float field_E0;
 	float field_E4;
 	float field_E8;
 	float field_EC;
-	char field_F0;
 	float m_oAttackAnim;
 	float m_attackAnim;
 	int m_health;
-	int field_100;
+	int m_lastHealth;
 	int m_hurtTime;
 	int m_hurtDuration;
 	float m_hurtDir;
-	int field_110;
-	int field_114;
-	float field_118;
-	float field_11C;
+	int m_deathTime;
+	int m_attackTime;
+	float m_oTilt;
+	float m_tilt;
 	int field_120;
 	int field_124;
 	float field_128;
-	float field_12C;
+	float m_walkAnimSpeed;
 	float field_130;
 	Random m_random;
-	int field_AFC;
+	int m_noActionTime;
 	Vec2 field_B00;
 	float field_B08;
 	bool m_bJumping;
@@ -129,7 +144,7 @@ public:
 	int m_lSteps;
 	Vec3 m_lPos;
 	Vec2 m_lRot;
-	int field_B84;
+	int m_lastHurt;
 	Entity* m_pEntLookedAt;
 
 	float v020_field_104;

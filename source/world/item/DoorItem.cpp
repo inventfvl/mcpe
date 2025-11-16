@@ -18,7 +18,7 @@ DoorItem::DoorItem(int id, Material* pMtl) : Item(id)
 	m_pMaterial = pMtl;
 }
 
-bool DoorItem::useOn(ItemInstance* inst, Player* player, Level* level, const TilePos& pos, Facing::Name face)
+bool DoorItem::useOn(ItemInstance* inst, Player* player, Level* level, const TilePos& pos, Facing::Name face) const
 {
 	if (face != Facing::UP)
 		return false;
@@ -68,6 +68,6 @@ bool DoorItem::useOn(ItemInstance* inst, Player* player, Level* level, const Til
 	level->setData(pos.above(), faceDir);
 	level->setTile(TilePos(pos.x, pos.y + 2, pos.z), pTile->m_ID);
 	level->setData(TilePos(pos.x, pos.y + 2, pos.z), faceDir + 8);
-	inst->m_amount--;
+	inst->m_count--;
 	return true;
 }

@@ -7,9 +7,14 @@
  ********************************************************************/
 
 #include "Dimension.hpp"
+#include "GameMods.hpp"
 #include "world/level/levelgen/chunk/TestChunkSource.hpp"
 #include "world/level/levelgen/chunk/RandomLevelSource.hpp"
 #include "world/level/levelgen/chunk/ChunkCache.hpp"
+
+#define C_TIMEOFDAY_SCALE_JAVA 24000
+#define C_TIMEOFDAY_SCALE_POCKET 14400
+#define C_TIMEOFDAY_SCALE C_TIMEOFDAY_SCALE_JAVA
 
 Dimension* Dimension::getNew(int type)
 {
@@ -53,6 +58,25 @@ Vec3 Dimension::getFogColor(float a, float b)
 
 float* Dimension::getSunriseColor(float a, float b)
 {
+	float radial = 0.4f;
+	float dot = Mth::cos(a * M_PI * 2.0f) - 0.125f; // * 2.0f + 0.5f;
+	float center = -0.0f;
+
+	if (dot >= center - radial && dot <= center + radial)
+	{
+		float norm = (dot - center) / radial * 0.5f + 0.5f;
+		float alpha = 1.0f - (1.0f - Mth::sin(norm * M_PI)) * 0.99f;
+		
+		m_sunriseColor[0] = norm * 0.3f + 0.7f;
+		m_sunriseColor[1] = norm * norm * 0.7f + 0.2f;
+		m_sunriseColor[2] = norm * norm * 0.0f + 0.2f;
+		m_sunriseColor[3] = alpha * alpha;
+
+		return m_sunriseColor;
+	}
+	return nullptr;
+/*
+	
 	float x1 = Mth::cos(a * M_PI * 2.0f); //@BUG: Meant to use Mth::cos?
 	if (x1 < -0.4f || x1 > 0.4f)
 		return nullptr;
@@ -66,6 +90,7 @@ float* Dimension::getSunriseColor(float a, float b)
 	m_sunriseColor[3] = ((x3 * -0.99f) + 1.0f) * ((x3 * -0.99f) + 1.0f);
 
 	return m_sunriseColor;
+	*/
 }
 
 float Dimension::getTimeOfDay(int32_t l, float f)
@@ -76,19 +101,19 @@ float Dimension::getTimeOfDay(int32_t l, float f)
 	f = 0;
 #endif
 
-	int i = int(l % 24000);
-	float f1 = (float(i) + f) / 24000.0f - 0.25f;
+	int i = int(l % C_TIMEOFDAY_SCALE);
+	float f1 = (float(i) + f) / float(C_TIMEOFDAY_SCALE) - 0.25f;
 	if (f1 <  0.0f)
-		f1 += 1.0f;
+		f1++;
 	if (f1 >  1.0f)
-		f1 -= 1.0f;
+		f1--;
 
 	// @NOTE: At this point, if the day/night cycle isn't running,
 	// f1's value should be -0.25
 
 	float f2 = f1;
 	//@NOTE: Meant to use Mth::cos?
-	f1 = 1.0f - (cosf(float(M_PI) * f1) + 1.0f) * 0.5f;
+	f1 = 1.0f - (cosf(float(M_PI) * f1) + 1.0f) / 2.f;
 	f1 = f2 + (f1 - f2) / 3.0f;
 	return f1;
 }

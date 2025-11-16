@@ -10,9 +10,8 @@
 CowModel::CowModel() :
 	QuadrupedModel(12, 0.0f)
 {
-	m_head = ModelPart(0, 0);
-	
-	m_head.setModel(this);
+    m_head.clear();
+	m_head.texOffs(0, 0);
 
 	// head
 	m_head.addBox(-4, -4, -6, 8, 8, 6);
@@ -24,8 +23,8 @@ CowModel::CowModel() :
 	m_head.texOffs(22, 0);
 	m_head.addBox(4, -5, -4, 1, 3, 1);
 
-	m_body = ModelPart(18, 4);
-	m_body.setModel(this);
+    m_body.clear();
+	m_body.texOffs(18, 4);
 
 	// torso
 	m_body.addBox(-6, -10, -7, 12, 18, 10);

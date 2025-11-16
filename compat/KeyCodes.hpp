@@ -9,21 +9,20 @@
 #pragma once
 
 #ifdef USE_SDL
-#include "../thirdparty/SDL2/SDL2.h"
+    #include "thirdparty/SDL/SDL.h"
 
-// because SDL sucks and makes no sense and sets bit 1<<30 for some keycodes for some godamn reason
-enum eSDLVirtualKeys
-{
-	#define CODE(x) SDLVK_ ## x,
-	#include "SDLKeyCodes.h"
-	#undef  CODE
-};
-
+    // because SDL sucks and makes no sense and sets bit 1<<30 for some keycodes for some godamn reason
+    enum eSDLVirtualKeys
+    {
+        #define CODE(x) SDLVK_ ## x,
+        #include "SDLKeyCodes.h"
+        #undef  CODE
+    };
 #endif
 
 #ifdef _WIN32
     #define WIN32_LEAN_AND_MEAN
-    #include <Windows.h>
+    #include <windows.h>
 #elif __APPLE__
     // https://i.stack.imgur.com/LD8pT.png
     #define AKEYCODE_FORWARD_DEL 0x75

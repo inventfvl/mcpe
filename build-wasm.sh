@@ -31,12 +31,12 @@ mkdir -p build
 cd build
 
 # Configure Build
-emcmake cmake -GNinja "$@" ../../platforms/sdl
+emcmake cmake -GNinja "$@" ../../
 
 # Build
 cmake --build .
 
 # Bundle
 cp reminecraftpe.* ../dist
-cp ../../platforms/sdl/emscripten/wasm_shell.html ../dist/reminecraftpe.html
+cp ../../platforms/sdl/sdl2/emscripten/wasm_shell.html ../dist/reminecraftpe.html
 cp ../../thirdparty/coi-serviceworker/coi-serviceworker.min.js ../dist

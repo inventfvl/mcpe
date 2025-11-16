@@ -15,7 +15,7 @@ TilePlanterItem::TilePlanterItem(int id, int place) : Item(id)
 	m_tile = Tile::tiles[place]->m_ID;
 }
 
-bool TilePlanterItem::useOn(ItemInstance* instance, Player* player, Level* level, const TilePos& pos, Facing::Name face)
+bool TilePlanterItem::useOn(ItemInstance* instance, Player* player, Level* level, const TilePos& pos, Facing::Name face) const
 {
 	TilePos tp(pos);
 
@@ -33,7 +33,7 @@ bool TilePlanterItem::useOn(ItemInstance* instance, Player* player, Level* level
 		case Facing::EAST: tp.x++; break;
 	}
 
-	if (!instance->m_amount)
+	if (!instance->m_count)
 		return false;
 
 	// why?
@@ -46,6 +46,6 @@ bool TilePlanterItem::useOn(ItemInstance* instance, Player* player, Level* level
 	Tile::tiles[m_tile]->setPlacedOnFace(level, tp, face);
 	Tile::tiles[m_tile]->setPlacedBy(level, tp, player);
 
-	instance->m_amount--;
+	instance->m_count--;
 	return true;
 }

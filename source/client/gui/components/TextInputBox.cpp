@@ -7,6 +7,8 @@
  ********************************************************************/
 
 #include "TextInputBox.hpp"
+#include "common/Logger.hpp"
+#include "compat/KeyCodes.hpp"
 #include "client/app/Minecraft.hpp"
 #ifndef ORIGINAL_CODE
 
@@ -50,34 +52,33 @@ void TextInputBox::setEnabled(bool bEnabled)
 }
 
 #ifdef USE_SDL
-// See https://www.libsdl.org/release/SDL-1.2.15/docs/html/sdlkey.html
-#define AKEYCODE_FORWARD_DEL   SDLVK_DELETE
-#define AKEYCODE_ARROW_LEFT    SDLVK_LEFT
-#define AKEYCODE_ARROW_RIGHT   SDLVK_RIGHT
-#define AKEYCODE_DEL	           SDLVK_BACKSPACE
-#define AKEYCODE_ENTER         SDLVK_RETURN
-#define AKEYCODE_A             SDLVK_a
-#define AKEYCODE_Z             SDLVK_z
-#define AKEYCODE_0             SDLVK_0
-#define AKEYCODE_9             SDLVK_9
-#define AKEYCODE_SPACE         SDLVK_SPACE
-#define AKEYCODE_COMMA         SDLVK_COMMA
-#define AKEYCODE_PERIOD        SDLVK_PERIOD
-#define AKEYCODE_PLUS          SDLVK_PLUS
-#define AKEYCODE_MINUS         SDLVK_MINUS
-#define AKEYCODE_SEMICOLON     SDLVK_SEMICOLON
-#define AKEYCODE_SLASH         SDLVK_SLASH
-#define AKEYCODE_GRAVE         SDLVK_BACKQUOTE
-#define AKEYCODE_BACKSLASH     SDLVK_BACKSLASH
-#define AKEYCODE_APOSTROPHE    SDLVK_QUOTE
-#define AKEYCODE_LEFT_BRACKET  SDLVK_LEFTBRACKET
-#define AKEYCODE_RIGHT_BRACKET SDLVK_RIGHTBRACKET
+#define AKEYCODE_FORWARD_DEL   SDLK_DELETE
+#define AKEYCODE_ARROW_LEFT    SDLK_LEFT
+#define AKEYCODE_ARROW_RIGHT   SDLK_RIGHT
+#define AKEYCODE_DEL           SDLK_BACKSPACE
+#define AKEYCODE_ENTER         SDLK_RETURN
+#define AKEYCODE_A             SDLK_a
+#define AKEYCODE_Z             SDLK_z
+#define AKEYCODE_0             SDLK_0
+#define AKEYCODE_9             SDLK_9
+#define AKEYCODE_SPACE         SDLK_SPACE
+#define AKEYCODE_COMMA         SDLK_COMMA
+#define AKEYCODE_PERIOD        SDLK_PERIOD
+#define AKEYCODE_PLUS          SDLK_PLUS
+#define AKEYCODE_MINUS         SDLK_MINUS
+#define AKEYCODE_SEMICOLON     SDLK_SEMICOLON
+#define AKEYCODE_SLASH         SDLK_SLASH
+#define AKEYCODE_GRAVE         SDLK_BACKQUOTE
+#define AKEYCODE_BACKSLASH     SDLK_BACKSLASH
+#define AKEYCODE_APOSTROPHE    SDLK_QUOTE
+#define AKEYCODE_LEFT_BRACKET  SDLK_LEFTBRACKET
+#define AKEYCODE_RIGHT_BRACKET SDLK_RIGHTBRACKET
 #elif defined(_WIN32)
 // See https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 #define AKEYCODE_FORWARD_DEL   VK_DELETE
 #define AKEYCODE_ARROW_LEFT    VK_LEFT
 #define AKEYCODE_ARROW_RIGHT   VK_RIGHT
-#define AKEYCODE_DEL	           VK_BACK
+#define AKEYCODE_DEL               VK_BACK
 #define AKEYCODE_ENTER         VK_RETURN
 #define AKEYCODE_A             'A'
 #define AKEYCODE_Z             'Z'
@@ -173,40 +174,13 @@ void TextInputBox::keyPressed(int key)
 	switch (key) {
 		case AKEYCODE_DEL:
 		{
-			// Backspace
-			if (m_text.empty())
-			{
-				return;
-			}
-			if (m_insertHead <= 0)
-			{
-				return;
-			}
-			if (m_insertHead > int(m_text.size()))
-			{
-				m_insertHead = int(m_text.size());
-			}
-			m_text.erase(m_text.begin() + m_insertHead - 1, m_text.begin() + m_insertHead);
-			m_insertHead--;
-			recalculateScroll();
+			// handled elsewhere, do not dupe
+		//	charPressed('\b');
 			break;
 		}
 		case AKEYCODE_FORWARD_DEL:
 		{
-			// Delete
-			if (m_text.empty())
-			{
-				return;
-			}
-			if (m_insertHead < 0)
-			{
-				return;
-			}
-			if (m_insertHead >= int(m_text.size()))
-			{
-				return;
-			}
-			m_text.erase(m_text.begin() + m_insertHead, m_text.begin() + m_insertHead + 1);
+			charPressed('\x7f'); // DELETE
 			break;
 		}
 		case AKEYCODE_ARROW_LEFT:
@@ -307,20 +281,68 @@ void TextInputBox::charPressed(int k)
 	if (!m_bFocused)
 		return;
 
-	// Ignore Unprintable Characters
-	if (k == '\n' || k < ' ' || k > '~')
-		return;
-
-	// Check Max Length
-	if (m_maxLength != -1 && int(m_text.length()) >= m_maxLength)
-	{
-		return;
-	}
-
-	// Insert
-	m_text.insert(m_text.begin() + m_insertHead, k);
-	m_insertHead++;
-	recalculateScroll();
+	switch (k) {
+		case '\b': // BACKSPACE
+		case '\x7f': // DELETE
+		{
+			// Backspace
+			if (m_text.empty())
+			{
+				return;
+			}
+			if (m_insertHead <= 0)
+			{
+				return;
+			}
+			if (m_insertHead > int(m_text.size()))
+			{
+				m_insertHead = int(m_text.size());
+			}
+			m_text.erase(m_text.begin() + m_insertHead - 1, m_text.begin() + m_insertHead);
+			m_insertHead--;
+			recalculateScroll();
+			break;
+		}
+		/* There's not much of a point in handling deletes differently,
+		 * especially since old Mac OS versions send delete instead of backspace.
+		case '\x7f': // DELETE
+		{
+			// Delete
+			if (m_text.empty())
+			{
+				return;
+			}
+			if (m_insertHead < 0)
+			{
+				return;
+			}
+			if (m_insertHead >= int(m_text.size()))
+			{
+				return;
+			}
+			m_text.erase(m_text.begin() + m_insertHead, m_text.begin() + m_insertHead + 1);
+			break;
+		}*/
+        default:
+        {
+            // Ignore Unprintable Characters
+            if (k == '\n' || k < ' ' || k > '~')
+                return;
+            
+            // Check Max Length
+            if (m_maxLength != -1 && int(m_text.length()) >= m_maxLength)
+            {
+                return;
+            }
+            
+            // Insert
+            m_text.insert(m_text.begin() + m_insertHead, k);
+            m_insertHead++;
+            recalculateScroll();
+            break;
+        }
+    }
+	m_pParent->onTextBoxUpdated(m_ID);
 }
 
 constexpr int PADDING = 5;
@@ -331,10 +353,10 @@ std::string TextInputBox::getRenderedText(int scroll_pos, std::string text)
 	// But it does not run often enough to matter.
 	std::string rendered_text = text.substr(scroll_pos);
 	int max_width = m_width - (PADDING * 2);
-	while (m_pFont->width(rendered_text) > max_width)
+	while (m_pFont->width(rendered_text) > max_width && !rendered_text.empty())
 	{
 		//rendered_text.pop_back(); // breaks C++03 compatibility
-		rendered_text.erase(rendered_text.length()-2, 1);
+		rendered_text.erase(rendered_text.end() - 1);
 	}
 	return rendered_text;
 }

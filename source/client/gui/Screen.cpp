@@ -63,7 +63,7 @@ void Screen::keyPressed(int key)
 		{
 			if (m_buttonTabList[m_tabButtonIndex]->m_bEnabled)
 			{
-				m_pMinecraft->m_pSoundEngine->play("random.click");
+				m_pMinecraft->m_pSoundEngine->playUI("random.click");
 				buttonClicked(m_buttonTabList[m_tabButtonIndex]);
 			}
 		}
@@ -85,6 +85,10 @@ void Screen::keyboardNewChar(char chr)
 		TextInputBox* textInput = m_textInputs[i];
 		textInput->charPressed(chr);
 	}
+}
+
+void Screen::handleScroll(bool down)
+{
 }
 
 static const char* g_panoramaList[] =
@@ -210,7 +214,7 @@ void Screen::mouseClicked(int xPos, int yPos, int d) // d = clicked?
 
 			if (!m_pMinecraft->isTouchscreen())
 			{
-				m_pMinecraft->m_pSoundEngine->play("random.click");
+				m_pMinecraft->m_pSoundEngine->playUI("random.click");
 				buttonClicked(button);
 			}
 		}
@@ -264,7 +268,7 @@ void Screen::mouseReleased(int xPos, int yPos, int d)
 	{
 		if (m_pMinecraft->isTouchscreen() && m_pClickedButton->clicked(m_pMinecraft, xPos, yPos))
 		{
-			m_pMinecraft->m_pSoundEngine->play("random.click");
+			m_pMinecraft->m_pSoundEngine->playUI("random.click");
 			buttonClicked(m_pClickedButton);
 		}
 		m_pClickedButton->released(xPos, yPos);
@@ -391,6 +395,8 @@ void Screen::mouseEvent()
 		else
 			mouseReleased(m_width * pAction->_posX / Minecraft::width, m_height * pAction->_posY / Minecraft::height - 1 + getYOffset(), Mouse::getEventButton());
 	}
+	if (pAction->_buttonType == BUTTON_SCROLLWHEEL)
+		handleScroll(Mouse::getEventButtonState());
 }
 
 void Screen::renderBackground(int unk)

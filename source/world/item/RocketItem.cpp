@@ -15,7 +15,7 @@ RocketItem::RocketItem(int id) : Item(id)
 {
 }
 
-bool RocketItem::useOn(ItemInstance* inst, Player* player, Level* level, const TilePos& pos, Facing::Name face)
+bool RocketItem::useOn(ItemInstance* inst, Player* player, Level* level, const TilePos& pos, Facing::Name face) const
 {
 	TilePos tp(pos);
 
@@ -35,6 +35,6 @@ bool RocketItem::useOn(ItemInstance* inst, Player* player, Level* level, const T
 
 	level->addEntity(new Rocket(level, tp + 0.5f));
 
-	inst->m_amount--;
+	inst->m_count--;
 	return true;
 }

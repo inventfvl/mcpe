@@ -8,6 +8,7 @@
 
 #include "GameMode.hpp"
 #include "client/app/Minecraft.hpp"
+#include "network/packets/RemoveBlockPacket.hpp"
 
 GameMode::GameMode(Minecraft* pMinecraft, Level& level) :
 	m_pMinecraft(pMinecraft),
@@ -32,23 +33,23 @@ bool GameMode::startDestroyBlock(Player* player, const TilePos& pos, Facing::Nam
 
 bool GameMode::destroyBlock(Player* player, const TilePos& pos, Facing::Name face)
 {
-	Tile* pTile = Tile::tiles[_level.getTile(pos)];
-	if (!pTile)
+	Tile* oldTile = Tile::tiles[_level.getTile(pos)];
+	if (!oldTile)
 		return false;
 
 	m_pMinecraft->m_pParticleEngine->destroyEffect(pos);
 
 	int tileData = _level.getData(pos);
-	pTile->playerWillDestroy(player, pos, face);
-	bool bChanged = _level.setTile(pos, 0);
-	if (!bChanged)
+	oldTile->playerWillDestroy(player, pos, face);
+	bool changed = _level.setTile(pos, TILE_AIR);
+	if (!changed)
 		return false;
 
 
-	_level.playSound(pos + 0.5f, "step." + pTile->m_pSound->m_name,
-		(pTile->m_pSound->volume * 0.5f) + 0.5f, pTile->m_pSound->pitch * 0.8f);
+	_level.playSound(pos + 0.5f, "step." + oldTile->m_pSound->m_name,
+		(oldTile->m_pSound->volume * 0.5f) + 0.5f, oldTile->m_pSound->pitch * 0.8f);
 
-	pTile->destroy(&_level, pos, tileData);
+	oldTile->destroy(&_level, pos, tileData);
 
 	if (m_pMinecraft->isOnline())
 	{
@@ -69,24 +70,32 @@ void GameMode::stopDestroyBlock()
 
 void GameMode::tick()
 {
+	// @NOTE: should only be in SurvivalMode & MultiPlayerGameMode, but Minecraft music is awesome
+	m_pMinecraft->m_pSoundEngine->playMusicTick();
 }
 
 void GameMode::render(float f)
 {
 }
 
-float GameMode::getPickRange() const
+float GameMode::getBlockReachDistance() const
 {
-/*
-  if ( *inputMode == 1 )
-	return 5.7;
-  if ( *inputMode == 3 )
-	return 5.6;
-  if ( !player || player->isCreative() )
-	return 12.0;
-  return 5.0;
-*/
-	return 7.5f;
+	/* Logic from Pocket Edition 0.12.1
+	if ( *inputMode == 1 )
+		return 5.7f;
+	if ( *inputMode == 3 )
+		return 5.6f;
+	if ( !player || player->isCreative() )
+		return 12.0f;
+	*/
+
+	// Fallback on Java and Pocket. All GameModes on PE are 5.0f until 0.10.0-0.12.1
+	return 5.0f;
+}
+
+float GameMode::getEntityReachDistance() const
+{
+	return 5.0f;
 }
 
 LocalPlayer* GameMode::createPlayer(Level* pLevel)
@@ -128,10 +137,10 @@ void GameMode::handleCloseInventory(int a, Player* player)
 
 bool GameMode::useItem(Player* player, Level* level, ItemInstance* instance)
 {
-	int oldAmount = instance->m_amount;
+	int oldCount = instance->m_count;
 
 	if (instance == instance->use(level, player))
-		return instance->m_amount != oldAmount;
+		return instance->m_count != oldCount;
 
 	return true;
 }
@@ -139,12 +148,25 @@ bool GameMode::useItem(Player* player, Level* level, ItemInstance* instance)
 bool GameMode::useItemOn(Player* player, Level* level, ItemInstance* instance, const TilePos& pos, Facing::Name face)
 {
 	TileID tile = level->getTile(pos);
+	if (tile == Tile::invisible_bedrock->m_ID)
+		return false;
+
+	bool success = false;
+
 	if (tile > 0 && Tile::tiles[tile]->use(level, pos, player))
-		return true;
+	{
+		success = true;
+	}
+	else if (instance)
+	{
+		success = instance->useOn(player, level, pos, face);
+	}
 
-	if (instance)
-		return instance->useOn(player, level, pos, face);
+	if (success)
+	{
+		_level.m_pRakNetInstance->send(new UseItemPacket(pos, face, player->m_EntityID, instance));
+	}
 
-	return false;
+	return success;
 }
 

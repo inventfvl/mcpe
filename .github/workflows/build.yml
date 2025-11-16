@@ -10,24 +10,30 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                  - name: OpenGL ES
-                    flags: "-DUSE_GLES1_COMPATIBILITY_LAYER=ON"
-                  - name: OpenGL
-                    flags: "-DUSE_GLES1_COMPATIBILITY_LAYER=OFF"
+                  - name: SDL 2
+                    flags: '-DREMCPE_PLATFORM=sdl2'
+                    packages: 'libsdl2-dev'
+                  - name: SDL 1.2
+                    flags: '-DREMCPE_PLATFORM=sdl1'
+                    packages: 'libsdl1.2-dev'
         name: Linux (${{ matrix.name }})
         runs-on: ubuntu-latest
         steps:
           - name: Checkout Repository
-            uses: actions/checkout@v3
+            uses: actions/checkout@v4
             with:
                 submodules: true
           - name: Install Dependencies
             run: |
                 sudo apt-get update
-                sudo apt-get install --no-install-recommends -y build-essential cmake ninja-build libopenal-dev libsdl2-dev zlib1g-dev
+                sudo apt-get install --no-install-recommends -y \
+                    build-essential \
+                    cmake ninja-build \
+                    libopenal-dev \
+                    zlib1g-dev \
+                    ${{ matrix.packages }}
           - name: Build
             run: |
-                cd platforms/sdl
                 mkdir build
                 cd build
                 cmake -GNinja ${{ matrix.flags }} ..
@@ -37,7 +43,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
           - name: Checkout Repository
-            uses: actions/checkout@v3
+            uses: actions/checkout@v4
             with:
                 submodules: true
           - name: Install Dependencies
@@ -47,28 +53,40 @@ jobs:
           - name: Build
             run: ./build-wasm.sh
     macos:
-        name: macOS
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                  - name: SDL 2
+                    backend_name: 'SDL2'
+                    packages: 'libsdl2'
+                  # @NOTE: Uses SDL 1.2 compatibility layer in newer macOS versions, resulting in 30+ minutes spent building
+                  # and installing said layer each time the action is run. We're not doing that.
+                  #- name: SDL 1.2
+                  #  backend_name: 'SDL1'
+                  #  packages: 'libsdl'
+        name: macOS (${{ matrix.name }})
         runs-on: macos-latest
         steps:
           - name: Checkout Repository
-            uses: actions/checkout@v3
+            uses: actions/checkout@v4
             with:
                 submodules: true
           - name: Install MacPorts
             uses: melusina-org/setup-macports@v1
           - name: Install Dependencies
             run: |
-                sudo port install libsdl2 +universal
-                sudo port install libpng +universal
+                port selfupdate
+                port install ${{ matrix.packages }} +universal
           - name: Build macOS Archive
             run: |
                 cd platforms/macos/projects/Minecraft
-                xcodebuild -scheme "MinecraftClient.SDL2" \
-                -archivePath $RUNNER_TEMP/GitHubActions_MacOS_SDL2.xcarchive \
+                xcodebuild -scheme "MinecraftClient.${{ matrix.backend_name }}" \
+                -archivePath $RUNNER_TEMP/GitHubActions_MacOS_${{ matrix.backend_name }}.xcarchive \
                 -sdk macosx \
-                -configuration "Release (Default)" \
+                -configuration "Release [${{ matrix.backend_name }}] (Default)" \
                 -destination generic/platform=macOS \
-                GCC_PREPROCESSOR_DEFINITIONS='MISSING_SOUND_DATA $(GCC_PREPROCESSOR_DEFINITIONS)' \
+                GCC_PREPROCESSOR_DEFINITIONS='$(GCC_PREPROCESSOR_DEFINITIONS)' \
                 -quiet \
                 clean archive 
     # @NOTE: Newer versions of Xcode will complain and refuse to build old XIB files or target old iOS versions
@@ -85,9 +103,9 @@ jobs:
     #            xcodebuild -scheme "minecraftpe" \
     #            -archivePath $RUNNER_TEMP/GitHubActions_iOS.xcarchive \
     #            -sdk iphoneos \
-    #            -configuration "Release (iOS)" \
+    #            -configuration "Release [iOS] (Default)" \
     #            -destination generic/platform=iOS \
-    #            GCC_PREPROCESSOR_DEFINITIONS='MISSING_SOUND_DATA $(GCC_PREPROCESSOR_DEFINITIONS)' \
+    #            GCC_PREPROCESSOR_DEFINITIONS='$(GCC_PREPROCESSOR_DEFINITIONS)' \
     #            -quiet \
     #            clean archive 
     android:
@@ -95,19 +113,19 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                  - name: SDL
-                    directory: platforms/sdl/android
+                  - name: SDL 2
+                    directory: platforms/sdl/sdl2/android
                   - name: Native
                     directory: platforms/android/project
         name: Android (${{ matrix.name }})
         runs-on: ubuntu-latest
         steps:
           - name: Checkout Repository
-            uses: actions/checkout@v3
+            uses: actions/checkout@v4
             with:
                 submodules: true
           - name: Setup JDK
-            uses: actions/setup-java@v3
+            uses: actions/setup-java@v4
             with:
                 java-version: '17'
                 distribution: 'temurin'
@@ -116,3 +134,35 @@ jobs:
             run: |
                 cd ${{ matrix.directory }}
                 ./gradlew build
+    mingw:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                  - name: Win32
+                    flags: '-DREMCPE_PLATFORM=windows'
+                  - name: SDL2
+                    flags: "-DREMCPE_PLATFORM=sdl2"
+                  # CMake can't find it
+                  #- name: SDL 1.2
+                  #  flags: "-DREMCPE_PLATFORM=sdl1"
+        name: MinGW-w64 (${{ matrix.name }})
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout Repository
+            uses: actions/checkout@v4
+            with:
+                submodules: true
+          - name: Install Dependencies
+            run: |
+                sudo apt-get update
+                sudo apt-get install --no-install-recommends -y \
+                    build-essential \
+                    cmake ninja-build \
+                    mingw-w64
+          - name: Build
+            run: |
+                mkdir build
+                cd build
+                cmake -GNinja -DCMAKE_TOOLCHAIN_FILE=../cmake/mingw-w64-toolchain.cmake ${{ matrix.flags }} ..
+                cmake --build .

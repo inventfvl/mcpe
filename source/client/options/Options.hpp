@@ -95,7 +95,7 @@ private:
 	KeyMapping m_keyMappings[KM_COUNT];
 
 public:
-	float field_0;
+	float m_fMusicVolume;
 	float m_fMasterVolume;
 	float m_fSensitivity;
 	bool m_bInvertMouse;
@@ -107,7 +107,7 @@ public:
 	bool m_bAmbientOcclusion;
 	uint8_t field_19; // use Mouse as input for breaking
 	std::string field_1C;
-	int field_238;
+	int m_difficulty;
 	bool m_bDontRenderGui;
 	bool m_bThirdPerson;
 	uint8_t field_23E;

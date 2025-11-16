@@ -11,12 +11,12 @@
 
 HumanoidModel::HumanoidModel(float a, float b):
 	Model(64, 32),
-	m_head(0,  0),
-	m_body(16, 16),
-	m_arm1(40, 16),
-	m_arm2(40, 16),
-	m_leg1(0,  16),
-	m_leg2(0,  16)
+	m_head(this, 0,  0),
+	m_body(this, 16, 16),
+	m_arm1(this, 40, 16),
+	m_arm2(this, 40, 16),
+	m_leg1(this, 0,  16),
+	m_leg2(this, 0,  16)
 {
 	field_20 = false;
 	m_bHoldingLeftHand = false;
@@ -24,24 +24,22 @@ HumanoidModel::HumanoidModel(float a, float b):
 	m_bSneaking = false;
 	field_237 = false;
 
-	m_head.setModel(this);
-	m_body.setModel(this);
-	m_arm1.setModel(this);
-	m_arm2.setModel(this);
-	m_leg1.setModel(this);
-	m_leg2.setModel(this);
-
 	m_head.addBox(-4, -8, -4, 8, 8, 8, a);
 	m_head.setPos(0, b, 0);
+
 	m_body.addBox(-4, 0, -2, 8, 12, 4);
 	m_body.setPos(0, b, 0);
+
 	m_arm1.addBox(-3, -2, -2, 4, 12, 4, a);
 	m_arm1.setPos(-5, b + 2, 0);
+
 	m_arm2.m_bMirror = true;
 	m_arm2.addBox(-1, -2, -2, 4, 12, 4, a);
 	m_arm2.setPos(5, b + 2, 0);
+
 	m_leg1.addBox(-2, 0, -2, 4, 12, 4, a);
 	m_leg1.setPos(-2, b + 12, 0);
+
 	m_leg2.m_bMirror = true;
 	m_leg2.addBox(-2, 0, -2, 4, 12, 4, a);
 	m_leg2.setPos(2, b + 12, 0);

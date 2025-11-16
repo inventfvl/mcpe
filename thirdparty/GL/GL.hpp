@@ -16,13 +16,11 @@
 	#include <EGL/egl.h>
 #endif
 
-#ifdef USE_GLES1_COMPATIBILITY_LAYER
-	#define USE_GLES // GLES or its compatibility layer.
-#endif
-
+// Disable this on OpenGL ES 2+
+#define USE_GL_NORMAL_LIGHTING
 
 #ifdef USE_GLES
-	#if MC_TARGET_OS_IOS
+	#if MC_PLATFORM_IOS
 		 #import <OpenGLES/ES1/gl.h>
 		 #import <OpenGLES/ES1/glext.h>
 
@@ -37,17 +35,22 @@
 	#include <cmath>
 
 	#define USE_GL_ORTHO_F
-#else
-	// Standard OpenGL supports normals and lighting, OpenGL ES doesn't
-	#define USE_GL_NORMAL_LIGHTING
 
+	// https://discourse.libsdl.org/t/opengl-es2-support-on-windows/20177/10
+	// float on GLES for performance reasons (mobile hardware) rather than double precision on GL
+	#if GL_ES_VERSION_2_0
+		#define glClearColor glClearColorf
+	#endif
+	#define glClearDepth glClearDepthf
+	#define glDepthRange glDepthRangef
+#else
 	#ifdef USE_SDL
 		#define USE_OPENGL_2_FEATURES
 
 		#define GL_GLEXT_PROTOTYPES
-		#include "thirdparty/SDL2/SDL_opengl.h"
+		#include "thirdparty/SDL/SDL_opengl.h"
 
-		#ifndef _WIN32
+		#if !defined(_WIN32) && SDL_MAJOR_VERSION == 2
 			#include <SDL2/SDL_opengl_glext.h>
 		#endif
 	#else
@@ -71,16 +74,16 @@
 
 #if defined(USE_GLES) || defined(USE_SDL)
 	// https://cgit.freedesktop.org/mesa/glu/tree/src/libutil/project.c
-	static inline void __gluMakeIdentityf(GLfloat m[16]) {
+	inline void __gluMakeIdentityf(GLfloat m[16]) {
 		m[0 + 4 * 0] = 1; m[0 + 4 * 1] = 0; m[0 + 4 * 2] = 0; m[0 + 4 * 3] = 0;
 		m[1 + 4 * 0] = 0; m[1 + 4 * 1] = 1; m[1 + 4 * 2] = 0; m[1 + 4 * 3] = 0;
 		m[2 + 4 * 0] = 0; m[2 + 4 * 1] = 0; m[2 + 4 * 2] = 1; m[2 + 4 * 3] = 0;
 		m[3 + 4 * 0] = 0; m[3 + 4 * 1] = 0; m[3 + 4 * 2] = 0; m[3 + 4 * 3] = 1;
 	}
-	static inline void gluPerspective(GLfloat fovy, GLfloat aspect, GLfloat zNear, GLfloat zFar) {
+	inline void gluPerspective(GLfloat fovy, GLfloat aspect, GLfloat zNear, GLfloat zFar) {
 		GLfloat m[4][4];
 		float sine, cotangent, deltaZ;
-		float radians = fovy / 2 * M_PI / 180;
+		float radians = fovy / 2.0f * float(M_PI) / 180.0f;
 
 		deltaZ = zFar - zNear;
 		sine = sin(radians);
@@ -105,7 +108,7 @@ void xglInit();
 bool xglInitted();
 #endif
 
-#if defined(USE_OPENGL_2_FEATURES) && !defined(_WIN32)
+#if defined(USE_OPENGL_2_FEATURES) && !defined(_WIN32) && !defined(__DREAMCAST__)
 
 #define xglBindBuffer glBindBuffer
 #define xglBufferData glBufferData

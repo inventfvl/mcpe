@@ -66,18 +66,25 @@ static std::string GetUniqueLevelName(LevelStorageSource* pSource, const std::st
 {
 	std::set<std::string> maps;
 
-	std::vector<LevelSummary> vls;
-	pSource->getLevelList(vls);
+	std::vector<LevelSummary> summaries;
+	pSource->getLevelList(summaries);
 
-	for (int i = 0; i < int(vls.size()); i++)
+	for (std::vector<LevelSummary>::const_iterator it = summaries.begin(); it != summaries.end(); it++)
 	{
-		const LevelSummary& ls = vls[i];
-		maps.insert(ls.m_fileName);
+		maps.insert(it->m_fileName);
 	}
 
 	std::string out = in;
+	//unsigned int generationId = 0;
 	while (maps.find(out) != maps.end())
+	{
+		// Custom duplicate naming scheme, so the world name matches the folder name
+		/*generationId++;
+		out = in + "" + Util::format("(%d)", generationId);*/
+
+		// Java/PE default
 		out += "-";
+	}
 
 	return out;
 }
@@ -118,9 +125,8 @@ void CreateWorldScreen::buttonClicked(Button* pButton)
 				seed = Util::hashCode(seedThing);
 		}
 
-		m_pMinecraft->selectLevel(levelUniqueName, levelNickname, seed);
-		m_pMinecraft->hostMultiplayer();
-		m_pMinecraft->setScreen(new ProgressScreen);
+		LevelSettings levelSettings(seed);
+		m_pMinecraft->selectLevel(levelUniqueName, levelNickname, levelSettings);
 	}
 }
 

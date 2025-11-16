@@ -108,7 +108,7 @@ NSThread *G_drawFrameThread = nil;
     // I guess when the device is sideways, the view doesn't rotate to be upright?
     Minecraft::width = self.height; // drawWidth
     Minecraft::height = self.width; // drawHeight
-	Minecraft::setGuiScaleMultiplier(self->viewScale);
+	Minecraft::setRenderScaleMultiplier(self->viewScale);
     self->_app->sizeUpdate(self.height / self->viewScale, self.width / self->viewScale); // windowWidth, windowHeight
     NSLog(@"Updated draw size to %d, %d\n", self.height, self.width);
 }
@@ -154,6 +154,9 @@ NSThread *G_drawFrameThread = nil;
 {
     //_keyboardView = [[ShowKeyboardView alloc] init];
     [super viewDidLoad];
+    
+    // Setup logging
+    Logger::setSingleton(new Logger);
     
     //EAGLContext *aContext = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
     //
@@ -282,9 +285,7 @@ NSThread *G_drawFrameThread = nil;
     //[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(updateDrawSize) name:UIDeviceOrientationDidChangeNotification object:nil];
     
     /*Minecraft *mc = (Minecraft *)app;
-     mc->selectLevel("TestWorld", "Test", (int)"iOS");
-     mc->hostMultiplayer();
-     mc->setScreen(new ProgressScreen);*/
+     mc->selectLevel("TestWorld", "Test", (int)"iOS");*/
 }
 
 - (NSInteger)animationFrameInterval

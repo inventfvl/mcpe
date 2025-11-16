@@ -8,7 +8,7 @@
 
 #include "ExternalFileLevelStorageSource.hpp"
 #include "ExternalFileLevelStorage.hpp"
-#include "common/Util.hpp"
+#include "common/Logger.hpp"
 
 #ifndef DEMO
 
@@ -25,6 +25,7 @@ ExternalFileLevelStorageSource::ExternalFileLevelStorageSource(const std::string
 			m_worldsPath += "/minecraftWorlds";
 			if (createFolderIfNotExists(m_worldsPath.c_str()))
 			{
+                // @WTF: why?
 				std::vector<LevelSummary> vls;
 				getLevelList(vls);
 			}
@@ -34,14 +35,14 @@ ExternalFileLevelStorageSource::ExternalFileLevelStorageSource(const std::string
 	m_worldsPath = path + "/games" + "/com.mojang" + "/minecraftWorlds";
 }
 
-std::string ExternalFileLevelStorageSource::getName()
+std::string ExternalFileLevelStorageSource::getName() const
 {
 	return "External File Level Storage";
 }
 
-LevelStorage* ExternalFileLevelStorageSource::selectLevel(const std::string& name, bool b)
+LevelStorage* ExternalFileLevelStorageSource::selectLevel(const std::string& name, bool b, bool forceConversion)
 {
-	return new ExternalFileLevelStorage(name, m_worldsPath + "/" + name);
+	return new ExternalFileLevelStorage(name, m_worldsPath + "/" + name, forceConversion);
 }
 
 void ExternalFileLevelStorageSource::getLevelList(std::vector<LevelSummary>& vls)
@@ -136,9 +137,9 @@ void ExternalFileLevelStorageSource::renameLevel(const std::string& oldName, con
 		levelUniqueName = oldName;
 
 	LevelData ld;
-	ExternalFileLevelStorage::readLevelData(m_worldsPath + "/" + levelUniqueName + "/" + "level.dat", &ld);
+	ExternalFileLevelStorage::readLevelData(m_worldsPath + "/" + levelUniqueName + "/" + "level.dat", ld);
 	ld.setLevelName(levelName);
-	ExternalFileLevelStorage::writeLevelData(m_worldsPath + "/" + levelUniqueName + "/" + "level.dat", &ld);
+	ExternalFileLevelStorage::writeLevelData(m_worldsPath + "/" + levelUniqueName + "/" + "level.dat", ld);
 }
 
 bool ExternalFileLevelStorageSource::isConvertible(const std::string&)
@@ -162,10 +163,10 @@ void ExternalFileLevelStorageSource::addLevelSummaryIfExists(std::vector<LevelSu
 	
 	LevelData ld;
 	
-	if (!ExternalFileLevelStorage::readLevelData(levelDat, &ld))
+	if (!ExternalFileLevelStorage::readLevelData(levelDat, ld))
 		return;
 
-	vls.push_back(LevelSummary(name, ld.getLevelName(), ld.getLastPlayed(), ld.getSizeOnDisk()));
+	vls.push_back(LevelSummary(name, ld.getLevelName(), ld.getLastPlayed(), ld.getSizeOnDisk(), ld.getGameType(), ld.getStorageVersion()));
 }
 
 #endif

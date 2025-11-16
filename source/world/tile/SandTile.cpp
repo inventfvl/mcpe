@@ -81,7 +81,7 @@ bool SandTile::isFree(Level* level, const TilePos& pos)
 
 void SandTile::tick(Level* level, const TilePos& pos, Random* random)
 {
-	if (level->m_bIsMultiplayer)
+	if (level->m_bIsClientSide)
 		return;
 
 	checkSlide(level, pos);

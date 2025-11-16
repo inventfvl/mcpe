@@ -7,10 +7,11 @@
  ********************************************************************/
 
 #include <cstdarg>
-#include <WindowsX.h>
+#include <windowsx.h>
 
 #include "thirdparty/GL/GL.hpp"
 #include "compat/KeyCodes.hpp"
+#include "GameMods.hpp"
 
 #include "client/app/App.hpp"
 #include "client/app/NinecraftApp.hpp"
@@ -19,6 +20,7 @@
 
 #include "AppPlatform_win32.hpp"
 #include "resource.h"
+#include "LoggerWin32.hpp"
 
 LPCTSTR g_WindowClassName = TEXT("MCPEClass");
 
@@ -73,7 +75,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
 
 			Minecraft::width  = width;
 			Minecraft::height = height;
-			Minecraft::setGuiScaleMultiplier(1.0f); // assume no meddling with the DPI stuff
+			Minecraft::setRenderScaleMultiplier(1.0f); // assume no meddling with the DPI stuff
 
 			g_AppPlatform.setScreenSize(width, height);
 
@@ -126,7 +128,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	SetConsoleTitle("ReMinecraftPE Debug Console");
 #endif
 
-	SetInstance(hInstance);
+	// This initializes the Logger singleton to use the Windows-specific variant
+	// If we didn't initialize it here, the Minecraft class would have our back
+	Logger::setSingleton(new LoggerWin32);
 
 	// register the window class:
 	WNDCLASS wc;
@@ -159,13 +163,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
 	HWND hWnd = CreateWindowEx(0, g_WindowClassName, windowTitle, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, w, h, NULL, NULL, hInstance, g_pApp);
 
-	CenterWindow(hWnd);
-	ShowWindow(hWnd, nCmdShow);
-	SetHWND(hWnd);
-
-	HDC hDC; HGLRC hRC;
-	// enable OpenGL for the window
-	EnableOpenGL(hWnd, &hDC, &hRC);
+	g_AppPlatform.initializeWindow(hWnd, nCmdShow);
 
 	xglInit();
 
@@ -173,7 +171,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	{
 		const char* const GL_ERROR_MSG = "Error initializing GL extensions. OpenGL 2.0 or later is required. Update your graphics drivers!";
 		LOG_E(GL_ERROR_MSG);
-		MessageBoxA(GetHWND(), GL_ERROR_MSG, "OpenGL Error", MB_OK);
+		MessageBoxA(hWnd, GL_ERROR_MSG, "OpenGL Error", MB_OK);
 
 		goto _cleanup;
 	}
@@ -209,7 +207,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 			g_pApp->update();
 
 			// note: NinecraftApp would have done this with eglSwapBuffers, but I'd rather do it here:
-			SwapBuffers(hDC);
+			g_AppPlatform.swapBuffers();
 		}
 	}
 
@@ -217,13 +215,10 @@ _cleanup:
 	g_pApp->saveOptions();
 
 	// disable OpenGL for the window
-	DisableOpenGL(hWnd, hDC, hRC);
+	g_AppPlatform.disableOpenGL();
 
 	// destroy the window explicitly, since we ignored the WM_QUIT message
-	DestroyWindow(hWnd);
-
-	hWnd = NULL;
-	SetHWND(NULL);
+	g_AppPlatform.destroyWindow();
 
 	delete g_pApp;
 
